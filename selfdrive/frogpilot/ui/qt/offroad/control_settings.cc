@@ -39,8 +39,8 @@ FrogPilotControlsPanel::FrogPilotControlsPanel(SettingsWindow *parent) : FrogPil
     {"CESpeed", tr("Below"), tr("Switch to 'Experimental Mode' below this speed when not following a lead vehicle."), ""},
     {"CECurves", tr("Curve Detected Ahead"), tr("Switch to 'Experimental Mode' when a curve is detected."), ""},
     {"CELead", tr("Lead Detected Ahead"), tr("Switch to 'Experimental Mode' when a slower or stopped lead vehicle is detected ahead."), ""},
+    {"CEModelStopTime", tr("Model Wants To Stop In The Next"), tr("Switch to 'Experimental Mode' when the model wants to stop like when it detects a stop light or stop sign."), ""},
     {"CENavigation", tr("Navigation Based"), tr("Switch to 'Experimental Mode' based on navigation data. (i.e. Intersections, stop signs, upcoming turns, etc.)"), ""},
-    {"CEStopLights", tr("Stop Lights and Stop Signs"), tr("Switch to 'Experimental Mode' when a stop light or stop sign is detected."), ""},
     {"CESignal", tr("Turn Signal When Below Highway Speeds"), tr("Switch to 'Experimental Mode' when using turn signals below highway speeds to help assist with turns."), ""},
     {"HideCEMStatusBar", tr("Hide the Status Bar"), tr("Don't use the status bar for 'Conditional Experimental Mode'."), ""},
 
@@ -104,10 +104,10 @@ FrogPilotControlsPanel::FrogPilotControlsPanel(SettingsWindow *parent) : FrogPil
     {"LongitudinalTune", tr("Longitudinal Tuning"), tr("Modify openpilot's acceleration and braking behavior."), "../frogpilot/assets/toggle_icons/icon_longitudinal_tune.png"},
     {"AccelerationProfile", tr("Acceleration Profile"), tr("Change the acceleration rate to be either sporty or eco-friendly."), ""},
     {"DecelerationProfile", tr("Deceleration Profile"), tr("Change the deceleration rate to be either sporty or eco-friendly."), ""},
-    {"AggressiveAcceleration", tr("Increase Acceleration Behind Lead"), tr("Increase aggressiveness when following a faster lead."), ""},
+    {"HumanAcceleration", tr("Human-Like Acceleration"), tr("Tweaks the acceleration behavior to be more 'human-like'."), ""},
+    {"HumanFollowing", tr("Human-Like Following Distance"), tr("Tweaks the following distance dynamically to be more 'human-like' when coming up behind slower/stopped leads or following faster leads."), ""},
     {"StoppingDistance", tr("Increase Stop Distance Behind Lead"), tr("Increase the stopping distance for a more comfortable stop from lead vehicles."), ""},
     {"LeadDetectionThreshold", tr("Lead Detection Threshold"), tr("Increase or decrease the lead detection threshold to either detect leads sooner, or increase model confidence."), ""},
-    {"SmoothBraking", tr("Smoother Braking"), tr("Smoothen out the braking behavior when approaching slower vehicles."), ""},
     {"TrafficMode", tr("Traffic Mode"), tr("Enable the ability to activate 'Traffic Mode' by holding down the 'distance' button for 2.5 seconds. When 'Traffic Mode' is active the onroad UI will turn red and openpilot will drive catered towards stop and go traffic."), ""},
 
     {"MTSCEnabled", tr("Map Turn Speed Control"), tr("Slow down for anticipated curves detected by the downloaded maps."), "../frogpilot/assets/toggle_icons/icon_speed_map.png"},
@@ -203,10 +203,8 @@ FrogPilotControlsPanel::FrogPilotControlsPanel(SettingsWindow *parent) : FrogPil
       std::vector<QString> navigationToggles{"CENavigationIntersections", "CENavigationTurns", "CENavigationLead"};
       std::vector<QString> navigationToggleNames{tr("Intersections"), tr("Turns"), tr("With Lead")};
       controlToggle = new FrogPilotParamToggleControl(param, title, desc, icon, navigationToggles, navigationToggleNames);
-    } else if (param == "CEStopLights") {
-      std::vector<QString> stopLightsToggles{"CEStopLightsLessSensitive"};
-      std::vector<QString> stopLightsToggleNames{tr("Decrease Sensitivity")};
-      controlToggle = new FrogPilotParamToggleControl(param, title, desc, icon, stopLightsToggles, stopLightsToggleNames);
+    } else if (param == "CEModelStopTime") {
+      controlToggle = new FrogPilotParamValueControl(param, title, desc, icon, 0, 10, std::map<int, QString>(), this, false, tr(" seconds"));
 
     } else if (param == "DeviceManagement") {
       FrogPilotParamManageControl *deviceManagementToggle = new FrogPilotParamManageControl(param, title, desc, icon, this);
@@ -404,13 +402,14 @@ FrogPilotControlsPanel::FrogPilotControlsPanel(SettingsWindow *parent) : FrogPil
         experimentalModels = QString::fromStdString(params.get("ExperimentalModels")).split(",");
 
         modelManagementOpen = true;
+
         for (auto &[key, toggle] : toggles) {
           toggle->setVisible(modelManagementKeys.find(key.c_str()) != modelManagementKeys.end());
         }
 
-        std::string currentModel = params.get("Model") + ".thneed";
+        QString currentModel = QString::fromStdString(params.get("Model")) + ".thneed";
         QStringList modelFiles = modelDir.entryList({"*.thneed"}, QDir::Files);
-        modelFiles.removeAll(QString::fromStdString(currentModel));
+        modelFiles.removeAll(currentModel);
         haveModelsDownloaded = modelFiles.size() > 1;
         modelsDownloaded = params.getBool("ModelsDownloaded");
 
@@ -427,69 +426,67 @@ FrogPilotControlsPanel::FrogPilotControlsPanel(SettingsWindow *parent) : FrogPil
       });
       controlToggle = modelRandomizerToggle;
     } else if (param == "ManageBlacklistedModels") {
-      std::vector<QString> blacklistOptions{tr("ADD"), tr("REMOVE")};
-      FrogPilotButtonsControl *manageModelsBlacklistBtn = new FrogPilotButtonsControl(title, desc, "", blacklistOptions);
-      QObject::connect(manageModelsBlacklistBtn, &FrogPilotButtonsControl::buttonClicked, [=](int id) {
+      FrogPilotButtonsControl *blacklistBtn = new FrogPilotButtonsControl(title, desc, icon, {tr("ADD"), tr("REMOVE")});
+      QObject::connect(blacklistBtn, &FrogPilotButtonsControl::buttonClicked, [=](int id) {
         QStringList blacklistedModels = QString::fromStdString(params.get("BlacklistedModels")).split(",", QString::SkipEmptyParts);
         QMap<QString, QString> labelToModelMap;
         QStringList selectableModels, deletableModels;
 
         for (int i = 0; i < availableModels.size(); ++i) {
-          QString modelFileName = availableModels[i];
-          QString readableName = availableModelNames[i];
-          if (!blacklistedModels.contains(modelFileName)) {
-            selectableModels.append(readableName);
+          QString model = availableModels[i];
+          if (blacklistedModels.contains(model)) {
+            deletableModels.append(availableModelNames[i]);
           } else {
-            deletableModels.append(readableName);
+            selectableModels.append(availableModelNames[i]);
           }
-          labelToModelMap[readableName] = modelFileName;
+          labelToModelMap[availableModelNames[i]] = model;
         }
 
         if (id == 0) {
           if (selectableModels.size() == 1) {
-            QString onlyModel = selectableModels.first();
-            FrogPilotConfirmationDialog::toggleAlert(
-              tr("There's no more models to blacklist! The only available model is \"%1\"!").arg(onlyModel),
-              tr("OK"), this);
+            FrogPilotConfirmationDialog::toggleAlert(tr("There's no more models to blacklist! The only available model is \"%1\"!").arg(selectableModels.first()), tr("OK"), this);
           } else {
             QString selectedModel = MultiOptionDialog::getSelection(tr("Select a model to add to the blacklist"), selectableModels, "", this);
-            if (!selectedModel.isEmpty() && ConfirmationDialog::confirm(tr("Are you sure you want to add this model to the blacklist?"), tr("Add"), this)) {
-              QString modelToAdd = labelToModelMap[selectedModel];
-              if (!blacklistedModels.contains(modelToAdd)) {
-                blacklistedModels.append(modelToAdd);
-                params.putNonBlocking("BlacklistedModels", blacklistedModels.join(",").toStdString());
+            if (!selectedModel.isEmpty()) {
+              if (ConfirmationDialog::confirm(tr("Are you sure you want to add the '%1' model to the blacklist?").arg(selectedModel), tr("Add"), this)) {
+                QString modelToAdd = labelToModelMap[selectedModel];
+                if (!blacklistedModels.contains(modelToAdd)) {
+                  blacklistedModels.append(modelToAdd);
+                  params.putNonBlocking("BlacklistedModels", blacklistedModels.join(",").toStdString());
+                }
               }
             }
           }
         } else if (id == 1) {
           QString selectedModel = MultiOptionDialog::getSelection(tr("Select a model to remove from the blacklist"), deletableModels, "", this);
-          if (!selectedModel.isEmpty() && ConfirmationDialog::confirm(tr("Are you sure you want to remove this model from the blacklist?"), tr("Remove"), this)) {
-            QString modelToRemove = labelToModelMap[selectedModel];
-            if (blacklistedModels.contains(modelToRemove)) {
-              blacklistedModels.removeAll(modelToRemove);
-              params.putNonBlocking("BlacklistedModels", blacklistedModels.join(",").toStdString());
-              paramsStorage.put("BlacklistedModels", blacklistedModels.join(",").toStdString());
+          if (!selectedModel.isEmpty()) {
+            if (ConfirmationDialog::confirm(tr("Are you sure you want to remove the '%1' model from the blacklist?").arg(selectedModel), tr("Remove"), this)) {
+              QString modelToRemove = labelToModelMap[selectedModel];
+              if (blacklistedModels.contains(modelToRemove)) {
+                blacklistedModels.removeAll(modelToRemove);
+                params.putNonBlocking("BlacklistedModels", blacklistedModels.join(",").toStdString());
+                paramsStorage.put("BlacklistedModels", blacklistedModels.join(",").toStdString());
+              }
             }
           }
         }
       });
-      controlToggle = reinterpret_cast<AbstractControl*>(manageModelsBlacklistBtn);
+      controlToggle = reinterpret_cast<AbstractControl*>(blacklistBtn);
     } else if (param == "ResetScores") {
-      ButtonControl *resetScoresBtn = new ButtonControl(title, tr("RESET"), desc);
-      QObject::connect(resetScoresBtn, &ButtonControl::clicked, [=]() {
-        if (FrogPilotConfirmationDialog::yesorno(tr("Are you sure you want to completely reset all of your model scores?"), this)) {
-          for (QString model : availableModelNames) {
-            QString cleanedModelName = processModelName(model);
-            params.remove(QString("%1Drives").arg(cleanedModelName).toStdString());
-            paramsStorage.remove(QString("%1Drives").arg(cleanedModelName).toStdString());
-            params.remove(QString("%1Score").arg(cleanedModelName).toStdString());
-            paramsStorage.remove(QString("%1Score").arg(cleanedModelName).toStdString());
+      ButtonControl *resetCalibrationsBtn = new ButtonControl(title, tr("RESET"), desc);
+      QObject::connect(resetCalibrationsBtn, &ButtonControl::clicked, [=]() {
+        if (FrogPilotConfirmationDialog::yesorno(tr("Reset all model scores?"), this)) {
+          for (const QString &model : availableModelNames) {
+            QString cleanedModel = processModelName(model);
+            params.remove(QString("%1Drives").arg(cleanedModel).toStdString());
+            paramsStorage.remove(QString("%1Drives").arg(cleanedModel).toStdString());
+            params.remove(QString("%1Score").arg(cleanedModel).toStdString());
+            paramsStorage.remove(QString("%1Score").arg(cleanedModel).toStdString());
           }
-
           updateModelLabels();
         }
       });
-      controlToggle = reinterpret_cast<AbstractControl*>(resetScoresBtn);
+      controlToggle = reinterpret_cast<AbstractControl*>(resetCalibrationsBtn);
     } else if (param == "ReviewScores") {
       ButtonControl *reviewScoresBtn = new ButtonControl(title, tr("VIEW"), desc);
       QObject::connect(reviewScoresBtn, &ButtonControl::clicked, [=]() {
@@ -505,46 +502,43 @@ FrogPilotControlsPanel::FrogPilotControlsPanel(SettingsWindow *parent) : FrogPil
     } else if (param == "DeleteModel") {
       deleteModelBtn = new ButtonControl(title, tr("DELETE"), desc);
       QObject::connect(deleteModelBtn, &ButtonControl::clicked, [=]() {
-        std::string currentModel = params.get("Model") + ".thneed";
+        QStringList deletableModels, existingModels = modelDir.entryList({"*.thneed"}, QDir::Files);
         QMap<QString, QString> labelToFileMap;
-
-        QStringList existingModelFiles = modelDir.entryList({"*.thneed"}, QDir::Files);
-        QStringList deletableModelLabels;
+        QString currentModel = QString::fromStdString(params.get("Model")) + ".thneed";
 
         for (int i = 0; i < availableModels.size(); ++i) {
-          QString modelFileName = availableModels[i] + ".thneed";
-          if (existingModelFiles.contains(modelFileName) && modelFileName != QString::fromStdString(currentModel) && !availableModelNames[i].contains(" (Default)")) {
-            deletableModelLabels.append(availableModelNames[i]);
-            labelToFileMap[availableModelNames[i]] = modelFileName;
+          QString modelFile = availableModels[i] + ".thneed";
+          if (existingModels.contains(modelFile) && modelFile != currentModel && !availableModelNames[i].contains("(Default)")) {
+            deletableModels.append(availableModelNames[i]);
+            labelToFileMap[availableModelNames[i]] = modelFile;
           }
         }
 
-        QString selectedModel = MultiOptionDialog::getSelection(tr("Select a model to delete"), deletableModelLabels, "", this);
-        if (!selectedModel.isEmpty() && ConfirmationDialog::confirm(tr("Are you sure you want to delete this model?"), tr("Delete"), this)) {
-          std::thread([=]() {
-            modelDeleting = true;
-            modelsDownloaded = false;
-            update();
+        QString selectedModel = MultiOptionDialog::getSelection(tr("Select a model to delete"), deletableModels, "", this);
+        if (!selectedModel.isEmpty()) {
+          if (ConfirmationDialog::confirm(tr("Are you sure you want to delete the '%1' model?").arg(selectedModel), tr("Delete"), this)) {
+            std::thread([=]() {
+              modelDeleting = true;
+              modelsDownloaded = false;
+              update();
 
-            params.putBoolNonBlocking("ModelsDownloaded", false);
+              params.putBoolNonBlocking("ModelsDownloaded", false);
+              deleteModelBtn->setValue(tr("Deleting..."));
 
-            deleteModelBtn->setValue(tr("Deleting..."));
+              QFile::remove(modelDir.absoluteFilePath(labelToFileMap[selectedModel]));
+              deleteModelBtn->setValue(tr("Deleted!"));
 
-            QFile::remove(modelDir.absoluteFilePath(labelToFileMap[selectedModel]));
+              util::sleep_for(1000);
+              deleteModelBtn->setValue("");
+              modelDeleting = false;
 
-            deleteModelBtn->setValue(tr("Deleted!"));
+              QStringList modelFiles = modelDir.entryList({"*.thneed"}, QDir::Files);
+              modelFiles.removeAll(currentModel);
 
-            std::this_thread::sleep_for(std::chrono::seconds(2));
-            deleteModelBtn->setValue("");
-            modelDeleting = false;
-
-            std::string currentModel = params.get("Model") + ".thneed";
-            QStringList modelFiles = modelDir.entryList({"*.thneed"}, QDir::Files);
-            modelFiles.removeAll(QString::fromStdString(currentModel));
-
-            haveModelsDownloaded = modelFiles.size() > 1;
-            update();
-          }).detach();
+              haveModelsDownloaded = modelFiles.size() > 1;
+              update();
+            }).detach();
+          }
         }
       });
       controlToggle = reinterpret_cast<AbstractControl*>(deleteModelBtn);
@@ -557,18 +551,18 @@ FrogPilotControlsPanel::FrogPilotControlsPanel(SettingsWindow *parent) : FrogPil
           cancellingDownload = true;
         } else {
           QMap<QString, QString> labelToModelMap;
-          QStringList existingModelFiles = modelDir.entryList({"*.thneed"}, QDir::Files);
-          QStringList downloadableModelLabels;
+          QStringList existingModels = modelDir.entryList({"*.thneed"}, QDir::Files);
+          QStringList downloadableModels;
 
           for (int i = 0; i < availableModels.size(); ++i) {
-            QString modelFileName = availableModels[i] + ".thneed";
-            if (!existingModelFiles.contains(modelFileName) && !availableModelNames[i].contains("(Default)")) {
-              downloadableModelLabels.append(availableModelNames[i]);
+            QString modelFile = availableModels[i] + ".thneed";
+            if (!existingModels.contains(modelFile) && !availableModelNames[i].contains("(Default)")) {
+              downloadableModels.append(availableModelNames[i]);
               labelToModelMap.insert(availableModelNames[i], availableModels[i]);
             }
           }
 
-          QString modelToDownload = MultiOptionDialog::getSelection(tr("Select a driving model to download"), downloadableModelLabels, "", this);
+          QString modelToDownload = MultiOptionDialog::getSelection(tr("Select a driving model to download"), downloadableModels, "", this);
           if (!modelToDownload.isEmpty()) {
             modelDownloading = true;
             paramsMemory.put("ModelToDownload", labelToModelMap.value(modelToDownload).toStdString());
@@ -581,21 +575,22 @@ FrogPilotControlsPanel::FrogPilotControlsPanel(SettingsWindow *parent) : FrogPil
 
             QObject::connect(progressTimer, &QTimer::timeout, this, [=]() {
               QString progress = QString::fromStdString(paramsMemory.get("ModelDownloadProgress"));
-              bool downloadFailed = progress.contains(QRegularExpression("cancelled|exists|Failed|offline", QRegularExpression::CaseInsensitiveOption));
+              bool downloadComplete = progress.contains(QRegularExpression("downloaded", QRegularExpression::CaseInsensitiveOption));
+              bool downloadFailed = progress.contains(QRegularExpression("cancelled|exists|failed|offline", QRegularExpression::CaseInsensitiveOption));
 
               if (progress != "0%") {
                 downloadModelBtn->setValue(progress);
               }
 
-              if (progress == "Downloaded!" || downloadFailed) {
-                bool lastModelDownloaded = !downloadFailed;
+              if (downloadComplete || downloadFailed) {
+                bool lastModelDownloaded = downloadComplete;
 
-                if (!downloadFailed) {
+                if (downloadComplete) {
                   haveModelsDownloaded = true;
                   update();
                 }
 
-                if (lastModelDownloaded) {
+                if (downloadComplete) {
                   for (const QString &model : availableModels) {
                     if (!QFile::exists(modelDir.filePath(model + ".thneed"))) {
                       lastModelDownloaded = false;
@@ -606,6 +601,7 @@ FrogPilotControlsPanel::FrogPilotControlsPanel(SettingsWindow *parent) : FrogPil
 
                 downloadModelBtn->setValue(progress);
 
+                paramsMemory.remove("CancelModelDownload");
                 paramsMemory.remove("ModelDownloadProgress");
 
                 progressTimer->stop();
@@ -614,8 +610,8 @@ FrogPilotControlsPanel::FrogPilotControlsPanel(SettingsWindow *parent) : FrogPil
                 QTimer::singleShot(2000, this, [=]() {
                   cancellingDownload = false;
                   modelDownloading = false;
+
                   downloadModelBtn->setValue("");
-                  paramsMemory.remove("CancelModelDownload");
 
                   if (lastModelDownloaded) {
                     modelsDownloaded = true;
@@ -646,18 +642,16 @@ FrogPilotControlsPanel::FrogPilotControlsPanel(SettingsWindow *parent) : FrogPil
     } else if (param == "SelectModel") {
       selectModelBtn = new ButtonControl(title, tr("SELECT"), desc);
       QObject::connect(selectModelBtn, &ButtonControl::clicked, [=]() {
-        QSet<QString> modelFilesBaseNames = QSet<QString>::fromList(
-          modelDir.entryList({"*.thneed"}, QDir::Files).replaceInStrings(QRegExp("\\.thneed$"), "")
-        );
+        QSet<QString> modelFilesBaseNames = QSet<QString>::fromList(modelDir.entryList({"*.thneed"}, QDir::Files).replaceInStrings(QRegExp("\\.thneed$"), ""));
+        QStringList selectableModels;
 
-        QStringList selectableModelLabels;
         for (int i = 0; i < availableModels.size(); ++i) {
           if (modelFilesBaseNames.contains(availableModels[i]) || availableModelNames[i].contains("(Default)")) {
-            selectableModelLabels.append(availableModelNames[i]);
+            selectableModels.append(availableModelNames[i]);
           }
         }
 
-        QString modelToSelect = MultiOptionDialog::getSelection(tr("Select a model - 🗺️ = Navigation | 📡 = Radar | 👀 = VOACC"), selectableModelLabels, "", this);
+        QString modelToSelect = MultiOptionDialog::getSelection(tr("Select a model - 🗺️ = Navigation | 📡 = Radar | 👀 = VOACC"), selectableModels, "", this);
         if (!modelToSelect.isEmpty()) {
           selectModelBtn->setValue(modelToSelect);
           int modelIndex = availableModelNames.indexOf(modelToSelect);
@@ -666,16 +660,14 @@ FrogPilotControlsPanel::FrogPilotControlsPanel(SettingsWindow *parent) : FrogPil
           params.putNonBlocking("ModelName", modelToSelect.toStdString());
 
           if (experimentalModels.contains(availableModels.at(modelIndex))) {
-            FrogPilotConfirmationDialog::toggleAlert(
-              tr("WARNING: This is a very experimental model and may drive dangerously!"),
-              tr("I understand the risks."), this);
+            FrogPilotConfirmationDialog::toggleAlert(tr("WARNING: This is a very experimental model and may drive dangerously!"), tr("I understand the risks."), this);
           }
 
           QString model = availableModelNames.at(modelIndex);
           QString part_model_param = processModelName(model);
 
           if (!params.checkKey(part_model_param.toStdString() + "CalibrationParams") || !params.checkKey(part_model_param.toStdString() + "LiveTorqueParameters")) {
-            if (FrogPilotConfirmationDialog::yesorno(tr("Do you want to start with a fresh calibration for the newly selected model?"), this)) {
+            if (FrogPilotConfirmationDialog::yesorno(tr("Start with a fresh calibration for the newly selected model?"), this)) {
               params.remove("CalibrationParams");
               params.remove("LiveTorqueParameters");
             }
@@ -691,18 +683,17 @@ FrogPilotControlsPanel::FrogPilotControlsPanel(SettingsWindow *parent) : FrogPil
       selectModelBtn->setValue(QString::fromStdString(params.get("ModelName")));
       controlToggle = reinterpret_cast<AbstractControl*>(selectModelBtn);
     } else if (param == "ResetCalibrations") {
-      std::vector<QString> resetOptions{tr("RESET ALL"), tr("RESET ONE")};
-      FrogPilotButtonsControl *resetCalibrationsBtn = new FrogPilotButtonsControl(title, desc, "", resetOptions);
+      FrogPilotButtonsControl *resetCalibrationsBtn = new FrogPilotButtonsControl(title, desc, icon, {tr("RESET ALL"), tr("RESET ONE")});
       QObject::connect(resetCalibrationsBtn, &FrogPilotButtonsControl::showDescriptionEvent, this, &FrogPilotControlsPanel::updateCalibrationDescription);
       QObject::connect(resetCalibrationsBtn, &FrogPilotButtonsControl::buttonClicked, [=](int id) {
         if (id == 0) {
           if (FrogPilotConfirmationDialog::yesorno(tr("Are you sure you want to completely reset all of your model calibrations?"), this)) {
-            for (QString model : availableModelNames) {
-              QString cleanedModelName = processModelName(model);
-              params.remove(QString("%1CalibrationParams").arg(cleanedModelName).toStdString());
-              paramsStorage.remove(QString("%1CalibrationParams").arg(cleanedModelName).toStdString());
-              params.remove(QString("%1LiveTorqueParameters").arg(cleanedModelName).toStdString());
-              paramsStorage.remove(QString("%1LiveTorqueParameters").arg(cleanedModelName).toStdString());
+            for (const QString &model : availableModelNames) {
+              QString cleanedModel = processModelName(model);
+              params.remove(QString("%1CalibrationParams").arg(cleanedModel).toStdString());
+              paramsStorage.remove(QString("%1CalibrationParams").arg(cleanedModel).toStdString());
+              params.remove(QString("%1LiveTorqueParameters").arg(cleanedModel).toStdString());
+              paramsStorage.remove(QString("%1LiveTorqueParameters").arg(cleanedModel).toStdString());
             }
           }
         } else if (id == 1) {
@@ -714,11 +705,11 @@ FrogPilotControlsPanel::FrogPilotControlsPanel(SettingsWindow *parent) : FrogPil
           QString modelToReset = MultiOptionDialog::getSelection(tr("Select a model to reset"), selectableModelLabels, "", this);
           if (!modelToReset.isEmpty()) {
             if (FrogPilotConfirmationDialog::yesorno(tr("Are you sure you want to completely reset this model's calibrations?"), this)) {
-              QString cleanedModelName = processModelName(modelToReset);
-              params.remove(QString("%1CalibrationParams").arg(cleanedModelName).toStdString());
-              paramsStorage.remove(QString("%1CalibrationParams").arg(cleanedModelName).toStdString());
-              params.remove(QString("%1LiveTorqueParameters").arg(cleanedModelName).toStdString());
-              paramsStorage.remove(QString("%1LiveTorqueParameters").arg(cleanedModelName).toStdString());
+              QString cleanedModel = processModelName(modelToReset);
+              params.remove(QString("%1CalibrationParams").arg(cleanedModel).toStdString());
+              paramsStorage.remove(QString("%1CalibrationParams").arg(cleanedModel).toStdString());
+              params.remove(QString("%1LiveTorqueParameters").arg(cleanedModel).toStdString());
+              paramsStorage.remove(QString("%1LiveTorqueParameters").arg(cleanedModel).toStdString());
             }
           }
         }

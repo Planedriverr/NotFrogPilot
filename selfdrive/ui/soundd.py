@@ -234,17 +234,17 @@ class Soundd:
     }
 
     holiday_theme_configuration = {
-      1: "april_fools",
-      2: "christmas",
-      3: "cinco_de_mayo",
-      4: "easter",
-      5: "fourth_of_july",
-      6: "halloween",
-      7: "new_years_day",
-      8: "st_patricks_day",
-      9: "thanksgiving",
-      10: "valentines_day",
-      11: "world_frog_day",
+      1: "new_years_day",
+      2: "valentines_day",
+      3: "st_patricks_day",
+      4: "world_frog_day",
+      5: "april_fools",
+      6: "easter",
+      7: "cinco_de_mayo",
+      8: "fourth_of_july",
+      9: "halloween",
+      10: "thanksgiving",
+      11: "christmas"
     }
 
     theme_configuration = {

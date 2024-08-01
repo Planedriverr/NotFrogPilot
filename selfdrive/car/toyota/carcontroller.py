@@ -9,6 +9,8 @@ from openpilot.selfdrive.car.toyota.values import CAR, STATIC_DSU_MSGS, NO_STOP_
                                         UNSUPPORTED_DSU_CAR, STOP_AND_GO_CAR, TSS2_CAR
 from opendbc.can.packer import CANPacker
 
+from openpilot.selfdrive.frogpilot.controls.lib.frogpilot_variables import get_max_allowed_accel
+
 LongCtrlState = car.CarControl.Actuators.LongControlState
 SteerControlType = car.CarParams.SteerControlType
 VisualAlert = car.CarControl.HUDControl.VisualAlert
@@ -176,9 +178,9 @@ class CarController(CarControllerBase):
     if CC.longActive:
       if frogpilot_toggles.sport_plus:
         if self.frogs_go_moo_tune:
-          pcm_accel_cmd = clip(gas_accel + self.pcm_accel_comp, self.params.ACCEL_MIN, self.params.ACCEL_MAX_PLUS)
+          pcm_accel_cmd = clip(gas_accel + self.pcm_accel_comp, self.params.ACCEL_MIN, get_max_allowed_accel(CS.out.vEgo))
         else:
-          pcm_accel_cmd = clip(actuators.accel + accel_offset, self.params.ACCEL_MIN, self.params.ACCEL_MAX_PLUS)
+          pcm_accel_cmd = clip(actuators.accel + accel_offset, self.params.ACCEL_MIN, get_max_allowed_accel(CS.out.vEgo))
       else:
         if self.frogs_go_moo_tune:
           pcm_accel_cmd = clip(gas_accel + self.pcm_accel_comp, self.params.ACCEL_MIN, self.params.ACCEL_MAX)

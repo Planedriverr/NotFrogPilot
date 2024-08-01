@@ -15,7 +15,7 @@ from typing import NoReturn
 from cereal import log
 import cereal.messaging as messaging
 from openpilot.common.conversions import Conversions as CV
-from openpilot.common.params import Params, UnknownKeyName
+from openpilot.common.params import Params
 from openpilot.common.realtime import set_realtime_priority
 from openpilot.common.transformations.orientation import rot_from_euler, euler_from_rot
 from openpilot.common.swaglog import cloudlog
@@ -72,13 +72,7 @@ class Calibrator:
 
     # Read saved calibration
     self.params = Params()
-    try:
-      if self.params.check_key(frogpilot_toggles.part_model_param + "CalibrationParams"):
-        self.calibration_key = frogpilot_toggles.part_model_param + "CalibrationParams"
-      else:
-        self.calibration_key = "CalibrationParams"
-    except UnknownKeyName:
-      self.calibration_key = "CalibrationParams"
+    self.calibration_key = frogpilot_toggles.part_model_param + "CalibrationParams"
     calibration_params = self.params.get(self.calibration_key)
     rpy_init = RPY_INIT
     wide_from_device_euler = WIDE_FROM_DEVICE_EULER_INIT

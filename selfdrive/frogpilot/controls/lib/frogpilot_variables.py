@@ -46,13 +46,11 @@ class FrogPilotVariables:
 
     if msg_bytes:
       with car.CarParams.from_bytes(msg_bytes) as CP:
-        always_on_lateral_set = self.params.get_bool("AlwaysOnLateralSet")
         car_make = CP.carName
         car_model = CP.carFingerprint
         openpilot_longitudinal = CP.openpilotLongitudinalControl
         pcm_cruise = CP.pcmCruise
     else:
-      always_on_lateral_set = False
       car_make = "mock"
       car_model = "mock"
       openpilot_longitudinal = False
@@ -69,9 +67,9 @@ class FrogPilotVariables:
     toggle.promptDistracted_volume = self.params.get_int("PromptDistractedVolume") if toggle.alert_volume_control else 100
     toggle.refuse_volume = self.params.get_int("RefuseVolume") if toggle.alert_volume_control else 100
     toggle.warningSoft_volume = self.params.get_int("WarningSoftVolume") if toggle.alert_volume_control else 100
-    toggle.warningImmediate_volume = self.params.get_int("WarningImmediateVolume") if toggle.alert_volume_control else 100
+    toggle.warningImmediate_volume = max(self.params.get_int("WarningImmediateVolume"), 25) if toggle.alert_volume_control else 100
 
-    toggle.always_on_lateral = always_on_lateral_set and self.params.get_bool("AlwaysOnLateral")
+    toggle.always_on_lateral = self.params.get_bool("AlwaysOnLateral") and self.params.get_bool("AlwaysOnLateralSet")
     toggle.always_on_lateral_lkas = toggle.always_on_lateral and self.params.get_bool("AlwaysOnLateralLKAS")
     toggle.always_on_lateral_main = toggle.always_on_lateral and self.params.get_bool("AlwaysOnLateralMain")
     toggle.always_on_lateral_pause_speed = self.params.get_int("PauseAOLOnBrake") if toggle.always_on_lateral else 0

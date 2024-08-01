@@ -81,19 +81,13 @@ class ModelState:
     self.inputs = {
       'desire': np.zeros(ModelConstants.DESIRE_LEN * (ModelConstants.HISTORY_BUFFER_LEN_SECRET+1 if SECRET_GOOD_OPENPILOT else ModelConstants.HISTORY_BUFFER_LEN+1), dtype=np.float32),
       'traffic_convention': np.zeros(ModelConstants.TRAFFIC_CONVENTION_LEN, dtype=np.float32),
+      **({'lateral_control_params': np.zeros(ModelConstants.LATERAL_CONTROL_PARAMS_LEN, dtype=np.float32)} if not CLAIRVOYANT_MODEL else {}),
+      **({'prev_desired_curv': np.zeros(ModelConstants.NAV_INSTRUCTION_LEN, dtype=np.float32)} if not CLAIRVOYANT_MODEL else {}),
+      **({'nav_features': np.zeros(ModelConstants.NAV_FEATURE_LEN, dtype=np.float32),
+          'nav_instructions': np.zeros(ModelConstants.NAV_INSTRUCTION_LEN, dtype=np.float32)} if not DISABLE_NAV else {}),
       'features_buffer': np.zeros((ModelConstants.HISTORY_BUFFER_LEN_SECRET if SECRET_GOOD_OPENPILOT else ModelConstants.HISTORY_BUFFER_LEN) * ModelConstants.FEATURE_LEN, dtype=np.float32),
+      **({'radar_tracks': np.zeros(ModelConstants.RADAR_TRACKS_LEN * ModelConstants.RADAR_TRACKS_WIDTH, dtype=np.float32)} if DISABLE_RADAR else {}),
     }
-
-    if not CLAIRVOYANT_MODEL:
-      self.inputs['lateral_control_params'] = np.zeros(ModelConstants.LATERAL_CONTROL_PARAMS_LEN, dtype=np.float32)
-      self.inputs['prev_desired_curv'] = np.zeros(ModelConstants.PREV_DESIRED_CURV_LEN * (ModelConstants.HISTORY_BUFFER_LEN_SECRET+1 if SECRET_GOOD_OPENPILOT else ModelConstants.HISTORY_BUFFER_LEN+1), dtype=np.float32)
-
-    if not DISABLE_NAV:
-      self.inputs['nav_features'] = np.zeros(ModelConstants.NAV_FEATURE_LEN, dtype=np.float32)
-      self.inputs['nav_instructions'] = np.zeros(ModelConstants.NAV_INSTRUCTION_LEN, dtype=np.float32)
-
-    if DISABLE_RADAR:
-      self.inputs['nav_features'] = np.zeros(ModelConstants.RADAR_TRACKS_LEN * ModelConstants.RADAR_TRACKS_WIDTH, dtype=np.float32)
 
     self.input_imgs_20hz = np.zeros(MODEL_FRAME_SIZE*5, dtype=np.float32)
     self.big_input_imgs_20hz = np.zeros(MODEL_FRAME_SIZE*5, dtype=np.float32)
@@ -365,14 +359,9 @@ def main(demo=False):
       'desire': vec_desire,
       'traffic_convention': traffic_convention,
       'lateral_control_params': lateral_control_params,
+      **({'nav_features': nav_features, 'nav_instructions': nav_instructions} if not DISABLE_NAV else {}),
+      **({'radar_tracks': radar_tracks,} if DISABLE_RADAR else {}),
     }
-
-    if not DISABLE_NAV:
-      inputs['nav_features'] = nav_features
-      inputs['nav_instructions'] = nav_instructions
-
-    if DISABLE_RADAR:
-      inputs['radar_tracks'] = radar_tracks
 
     mt1 = time.perf_counter()
     model_output = model.run(buf_main, buf_extra, model_transform_main, model_transform_extra, inputs, prepare_only)

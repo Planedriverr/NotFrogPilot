@@ -364,7 +364,7 @@ void AnnotatedCameraWidget::drawLaneLines(QPainter &painter, const UIState *s, c
       if (scene.track_vertices[track_idx].y() < 0 || scene.track_vertices[track_idx].y() > height()) continue;
 
       // Flip so 0 is bottom of frame
-      float lin_grad_point = (height() - scene.track_vertices[track_idx].y()) / height();
+      float lin_grad_point = (height() - scene.track_vertices[i].y()) / height();
 
       // If acceleration is between -0.25 and 0.25, resort to the theme color
       if (std::abs(acceleration[i]) < 0.25 && (currentHolidayTheme != 0)) {
@@ -761,16 +761,16 @@ void AnnotatedCameraWidget::initializeFrogPilotWidgets() {
   bottom_layout = new QHBoxLayout();
 
   distance_btn = new DistanceButton(this);
-  bottom_layout->addWidget(distance_btn, 0, Qt::AlignBottom | Qt::AlignLeft);
+  bottom_layout->addWidget(distance_btn);
 
   QSpacerItem *spacer = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
   bottom_layout->addItem(spacer);
 
   compass_img = new Compass(this);
-  bottom_layout->addWidget(compass_img, 0, Qt::AlignBottom | Qt::AlignRight);
+  bottom_layout->addWidget(compass_img);
 
   map_settings_btn_bottom = new MapSettingsButton(this);
-  bottom_layout->addWidget(map_settings_btn_bottom, 0, Qt::AlignBottom | Qt::AlignRight);
+  bottom_layout->addWidget(map_settings_btn_bottom);
 
   main_layout->addLayout(bottom_layout);
 
@@ -789,39 +789,39 @@ void AnnotatedCameraWidget::initializeFrogPilotWidgets() {
   };
 
   holidayThemeConfiguration = {
-    {1, {"april_fools", QColor(255, 165, 0, 255), {{0.0, QBrush(QColor::fromHslF(39 / 360., 1.0, 0.5, 0.9))},
-                                                   {0.5, QBrush(QColor::fromHslF(39 / 360., 1.0, 0.5, 0.5))},
-                                                   {1.0, QBrush(QColor::fromHslF(39 / 360., 1.0, 0.5, 0.1))}}}},
-    {2, {"christmas", QColor(0, 72, 255, 255), {{0.0, QBrush(QColor::fromHslF(223 / 360., 1.0, 0.5, 0.9))},
-                                                {0.5, QBrush(QColor::fromHslF(223 / 360., 1.0, 0.5, 0.5))},
-                                                {1.0, QBrush(QColor::fromHslF(223 / 360., 1.0, 0.5, 0.1))}}}},
-    {3, {"cinco_de_mayo", QColor(0, 104, 71, 255), {{0.0, QBrush(QColor::fromHslF(161 / 360., 1.0, 0.2, 0.9))},
-                                                    {0.5, QBrush(QColor::fromHslF(161 / 360., 1.0, 0.2, 0.5))},
-                                                    {1.0, QBrush(QColor::fromHslF(161 / 360., 1.0, 0.2, 0.1))}}}},
-    {4, {"easter", QColor(200, 150, 200, 255), {{0.0, QBrush(QColor::fromHslF(300 / 360., 0.31, 0.69, 0.9))},
-                                                {0.5, QBrush(QColor::fromHslF(300 / 360., 0.31, 0.69, 0.5))},
-                                                {1.0, QBrush(QColor::fromHslF(300 / 360., 0.31, 0.69, 0.1))}}}},
-    {5, {"fourth_of_july", QColor(10, 49, 97, 255), {{0.0, QBrush(QColor::fromHslF(213 / 360., 0.81, 0.21, 0.9))},
-                                                     {0.5, QBrush(QColor::fromHslF(213 / 360., 0.81, 0.21, 0.5))},
-                                                     {1.0, QBrush(QColor::fromHslF(213 / 360., 0.81, 0.21, 0.1))}}}},
-    {6, {"halloween", QColor(255, 0, 0, 255), {{0.0, QBrush(QColor::fromHslF(0 / 360., 1.0, 0.5, 0.9))},
-                                               {0.5, QBrush(QColor::fromHslF(0 / 360., 1.0, 0.5, 0.5))},
-                                               {1.0, QBrush(QColor::fromHslF(0 / 360., 1.0, 0.5, 0.1))}}}},
-    {7, {"new_years_day", QColor(23, 134, 68, 242), {{0.0, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.9))},
+    {1, {"new_years_day", QColor(23, 134, 68, 242), {{0.0, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.9))},
                                                      {0.5, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.5))},
                                                      {1.0, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.1))}}}},
-    {8, {"st_patricks_day", QColor(0, 128, 0, 255), {{0.0, QBrush(QColor::fromHslF(120 / 360., 1.0, 0.25, 0.9))},
+    {2, {"valentines_day", QColor(23, 134, 68, 242), {{0.0, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.9))},
+                                                       {0.5, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.5))},
+                                                       {1.0, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.1))}}}},
+    {3, {"st_patricks_day", QColor(0, 128, 0, 255), {{0.0, QBrush(QColor::fromHslF(120 / 360., 1.0, 0.25, 0.9))},
                                                      {0.5, QBrush(QColor::fromHslF(120 / 360., 1.0, 0.25, 0.5))},
                                                      {1.0, QBrush(QColor::fromHslF(120 / 360., 1.0, 0.25, 0.1))}}}},
-    {9, {"thanksgiving", QColor(255, 0, 0, 255), {{0.0, QBrush(QColor::fromHslF(0 / 360., 1.0, 0.5, 0.9))},
-                                                  {0.5, QBrush(QColor::fromHslF(0 / 360., 1.0, 0.5, 0.5))},
-                                                  {1.0, QBrush(QColor::fromHslF(0 / 360., 1.0, 0.5, 0.1))}}}},
-    {10, {"valentines_day", QColor(23, 134, 68, 242), {{0.0, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.9))},
-                                                       {0.5, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.5))},
-                                                       {1.0, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.1))}}}},
-    {11, {"world_frog_day", QColor(23, 134, 68, 242), {{0.0, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.9))},
-                                                       {0.5, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.5))},
-                                                       {1.0, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.1))}}}},
+    {4, {"world_frog_day", QColor(23, 134, 68, 242), {{0.0, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.9))},
+                                                      {0.5, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.5))},
+                                                      {1.0, QBrush(QColor::fromHslF(144 / 360., 0.71, 0.31, 0.1))}}}},
+    {5, {"april_fools", QColor(255, 165, 0, 255), {{0.0, QBrush(QColor::fromHslF(39 / 360., 1.0, 0.5, 0.9))},
+                                                   {0.5, QBrush(QColor::fromHslF(39 / 360., 1.0, 0.5, 0.5))},
+                                                   {1.0, QBrush(QColor::fromHslF(39 / 360., 1.0, 0.5, 0.1))}}}},
+    {6, {"easter", QColor(200, 150, 200, 255), {{0.0, QBrush(QColor::fromHslF(300 / 360., 0.31, 0.69, 0.9))},
+                                                {0.5, QBrush(QColor::fromHslF(300 / 360., 0.31, 0.69, 0.5))},
+                                                {1.0, QBrush(QColor::fromHslF(300 / 360., 0.31, 0.69, 0.1))}}}},
+    {7, {"cinco_de_mayo", QColor(0, 104, 71, 255), {{0.0, QBrush(QColor::fromHslF(161 / 360., 1.0, 0.2, 0.9))},
+                                                    {0.5, QBrush(QColor::fromHslF(161 / 360., 1.0, 0.2, 0.5))},
+                                                    {1.0, QBrush(QColor::fromHslF(161 / 360., 1.0, 0.2, 0.1))}}}},
+    {8, {"fourth_of_july", QColor(10, 49, 97, 255), {{0.0, QBrush(QColor::fromHslF(213 / 360., 0.81, 0.21, 0.9))},
+                                                     {0.5, QBrush(QColor::fromHslF(213 / 360., 0.81, 0.21, 0.5))},
+                                                     {1.0, QBrush(QColor::fromHslF(213 / 360., 0.81, 0.21, 0.1))}}}},
+    {9, {"halloween", QColor(255, 0, 0, 255), {{0.0, QBrush(QColor::fromHslF(0 / 360., 1.0, 0.5, 0.9))},
+                                               {0.5, QBrush(QColor::fromHslF(0 / 360., 1.0, 0.5, 0.5))},
+                                               {1.0, QBrush(QColor::fromHslF(0 / 360., 1.0, 0.5, 0.1))}}}},
+    {10, {"thanksgiving", QColor(255, 0, 0, 255), {{0.0, QBrush(QColor::fromHslF(0 / 360., 1.0, 0.5, 0.9))},
+                                                   {0.5, QBrush(QColor::fromHslF(0 / 360., 1.0, 0.5, 0.5))},
+                                                   {1.0, QBrush(QColor::fromHslF(0 / 360., 1.0, 0.5, 0.1))}}}},
+    {11, {"christmas", QColor(0, 72, 255, 255), {{0.0, QBrush(QColor::fromHslF(223 / 360., 1.0, 0.5, 0.9))},
+                                                 {0.5, QBrush(QColor::fromHslF(223 / 360., 1.0, 0.5, 0.5))},
+                                                 {1.0, QBrush(QColor::fromHslF(223 / 360., 1.0, 0.5, 0.1))}}}}
   };
 
   animationTimer = new QTimer(this);
@@ -1130,10 +1130,15 @@ void AnnotatedCameraWidget::drawLeadInfo(QPainter &p) {
   };
 
   if ((acceleration > maxAcceleration && (status == STATUS_ENGAGED || status == STATUS_TRAFFIC_MODE_ACTIVE)) ||
-      (currentRandomEvent == 2 && maxAcceleration < 3.0) ||
-      (currentRandomEvent == 3 && maxAcceleration < 3.5) ||
-      (currentRandomEvent == 4 && maxAcceleration < 4.0)) {
-    maxAcceleration = std::max({acceleration, currentRandomEvent == 2 ? 3.0 : maxAcceleration, currentRandomEvent == 3 ? 3.5 : maxAcceleration, currentRandomEvent == 4 ? 4.0 : maxAcceleration});
+      (currentRandomEvent == "accel30" && maxAcceleration < 3.0) ||
+      (currentRandomEvent == "accel35" && maxAcceleration < 3.5) ||
+      (currentRandomEvent == "accel40" && maxAcceleration < 4.0)) {
+    maxAcceleration = std::max({
+      acceleration,
+      currentRandomEvent == "accel30" ? 3.0 : maxAcceleration,
+      currentRandomEvent == "accel35" ? 3.5 : maxAcceleration,
+      currentRandomEvent == "accel40" ? 4.0 : maxAcceleration
+    });
     resetTimer();
   } else {
     isFiveSecondsPassed = timer.hasExpired(maxAccelDuration);

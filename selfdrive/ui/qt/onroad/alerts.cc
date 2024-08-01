@@ -6,7 +6,7 @@
 #include "selfdrive/ui/qt/util.h"
 
 void OnroadAlerts::updateState(const UIState &s) {
-  Alert a = getAlert(*(s.sm), s.scene.started_frame);
+  Alert a = getAlert(*(s.sm), s.scene.started_frame, s.scene.force_onroad);
   if (!alert.equal(a)) {
     alert = a;
     update();
@@ -26,7 +26,7 @@ void OnroadAlerts::clear() {
   update();
 }
 
-OnroadAlerts::Alert OnroadAlerts::getAlert(const SubMaster &sm, uint64_t started_frame) {
+OnroadAlerts::Alert OnroadAlerts::getAlert(const SubMaster &sm, uint64_t started_frame, bool force_onroad) {
   const cereal::ControlsState::Reader &cs = sm["controlsState"].getControlsState();
   const uint64_t controls_frame = sm.rcv_frame("controlsState");
 
@@ -36,7 +36,7 @@ OnroadAlerts::Alert OnroadAlerts::getAlert(const SubMaster &sm, uint64_t started
          cs.getAlertType().cStr(), cs.getAlertSize(), cs.getAlertStatus()};
   }
 
-  if (!sm.updated("controlsState") && (sm.frame - started_frame) > 5 * UI_FREQ) {
+  if (!sm.updated("controlsState") && (sm.frame - started_frame) > 5 * UI_FREQ && !force_onroad) {
     const int CONTROLS_TIMEOUT = 5;
     const int controls_missing = (nanos_since_boot() - sm.rcv_time("controlsState")) / 1e9;
 

@@ -45,17 +45,17 @@ Sidebar::Sidebar(QWidget *parent) : QFrame(parent), onroad(false), flag_pressed(
 
   holidayThemeConfiguration = {
     {0, {"stock", {QColor(255, 255, 255)}}},
-    {1, {"april_fools", {QColor(255, 165, 0)}}},
-    {2, {"christmas", {QColor(0, 72, 255)}}},
-    {3, {"cinco_de_mayo", {QColor(0, 104, 71)}}},
-    {4, {"easter", {QColor(200, 150, 200)}}},
-    {5, {"fourth_of_july", {QColor(10, 49, 97)}}},
-    {6, {"halloween", {QColor(255, 0, 0)}}},
-    {7, {"new_years_day", {QColor(23, 134, 68)}}},
-    {8, {"st_patricks_day", {QColor(0, 128, 0)}}},
-    {9, {"thanksgiving", {QColor(255, 0, 0)}}},
-    {10, {"valentines_day", {QColor(23, 134, 68)}}},
-    {11, {"world_frog_day", {QColor(23, 134, 68)}}},
+    {1, {"new_years_day", {QColor(23, 134, 68)}}},
+    {2, {"valentines_day", {QColor(23, 134, 68)}}},
+    {3, {"st_patricks_day", {QColor(0, 128, 0)}}},
+    {4, {"world_frog_day", {QColor(23, 134, 68)}}},
+    {5, {"april_fools", {QColor(255, 165, 0)}}},
+    {6, {"easter", {QColor(200, 150, 200)}}},
+    {7, {"cinco_de_mayo", {QColor(0, 104, 71)}}},
+    {8, {"fourth_of_july", {QColor(10, 49, 97)}}},
+    {9, {"halloween", {QColor(255, 0, 0)}}},
+    {10, {"thanksgiving", {QColor(255, 0, 0)}}},
+    {11, {"christmas", {QColor(0, 72, 255)}}}
   };
 
   for (auto &[key, themeData] : holidayThemeConfiguration) {

@@ -45,17 +45,17 @@ class ThemeManager:
     year = current_date.year
 
     holidays = {
-      "april_fools": (datetime.datetime(year, 4, 1), 1),
-      "christmas_week": (datetime.datetime(year, 12, 25), 2),
-      "cinco_de_mayo": (datetime.datetime(year, 5, 5), 3),
-      "easter_week": (self.calculate_easter(year), 4),
-      "fourth_of_july": (datetime.datetime(year, 7, 4), 5),
-      "halloween_week": (datetime.datetime(year, 10, 31), 6),
-      "new_years": (datetime.datetime(year, 1, 1), 7),
-      "st_patricks": (datetime.datetime(year, 3, 17), 8),
-      "thanksgiving_week": (self.calculate_thanksgiving(year), 9),
-      "valentines": (datetime.datetime(year, 2, 14), 10),
-      "world_frog_day": (datetime.datetime(year, 3, 20), 11)
+      "new_years": (datetime.datetime(year, 1, 1), 1),
+      "valentines": (datetime.datetime(year, 2, 14), 2),
+      "st_patricks": (datetime.datetime(year, 3, 17), 3),
+      "world_frog_day": (datetime.datetime(year, 3, 20), 4),
+      "april_fools": (datetime.datetime(year, 4, 1), 5),
+      "easter_week": (self.calculate_easter(year), 6),
+      "cinco_de_mayo": (datetime.datetime(year, 5, 5), 7),
+      "fourth_of_july": (datetime.datetime(year, 7, 4), 8),
+      "halloween_week": (datetime.datetime(year, 10, 31), 9),
+      "thanksgiving_week": (self.calculate_thanksgiving(year), 10),
+      "christmas_week": (datetime.datetime(year, 12, 25), 11)
     }
 
     for holiday, (date, theme_id) in holidays.items():

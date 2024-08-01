@@ -85,7 +85,7 @@ def create_ui_command(packer, steer, chime, left_line, right_line, left_lane_dep
     # static signals
     "SET_ME_X02": 2,
     "SET_ME_X01": 1,
-    "LKAS_STATUS": 1,
+    #"LKAS_STATUS": lkas_enabled,
     "REPEATED_BEEPS": 0,
     "LANE_SWAY_FLD": 7,
     "LANE_SWAY_BUZZER": 0,

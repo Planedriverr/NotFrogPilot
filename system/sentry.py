@@ -30,10 +30,6 @@ def bind_user() -> None:
 
 
 def report_tombstone(fn: str, message: str, contents: str) -> None:
-  FrogPilot = "frogai" in get_build_metadata().openpilot.git_origin.lower()
-  if not FrogPilot or PC:
-    return
-
   no_internet = 0
   while True:
     if is_url_pingable("https://sentry.io"):
@@ -128,10 +124,6 @@ def capture_exception(*args, **kwargs) -> None:
   save_exception(exc_text)
   cloudlog.error("crash", exc_info=kwargs.get('exc_info', 1))
 
-  FrogPilot = "frogai" in get_build_metadata().openpilot.git_origin.lower()
-  if not FrogPilot or PC:
-    return
-
   try:
     bind_user()
     sentry_sdk.capture_exception(*args, **kwargs)
@@ -166,7 +158,8 @@ def set_tag(key: str, value: str) -> None:
 
 def init(project: SentryProject) -> bool:
   build_metadata = get_build_metadata()
-  if PC:
+  FrogPilot = "FrogAi" in build_metadata.openpilot.git_origin
+  if not FrogPilot or PC:
     return False
 
   params = Params()

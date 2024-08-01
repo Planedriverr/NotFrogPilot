@@ -89,28 +89,35 @@ void ExperimentalButton::updateState(const UIState &s, bool leadInfo) {
   conditionalStatus = scene.conditional_status;
   mapOpen = scene.map_open;
   navigateOnOpenpilot = scene.navigate_on_openpilot;
-  randomEvent = scene.current_random_event;
+  currentRandomEvent = scene.current_random_event;
   rotatingWheel = scene.rotating_wheel;
   trafficModeActive = scene.traffic_mode_active;
   wheelIcon = scene.wheel_icon;
-  wheelIconGif = 0;
   y_offset = leadInfo ? 10 : 0;
 
-  if (randomEvent == 0 && gifLabel) {
+  static const std::map<QString, int> eventIndexMap = {
+    {"accel30", 0},
+    {"accel35", 1},
+    {"accel40", 2}
+  };
+
+  std::map<QString, int>::const_iterator it = eventIndexMap.find(currentRandomEvent);
+  if (currentRandomEvent == "" && gifLabel) {
     delete gifLabel;
     gifLabel = nullptr;
-  } else if (randomEvent == 1 || randomEvent == 2 || randomEvent == 3 || randomEvent == 4) {
+    wheelIconGif = 0;
+  } else if (it != eventIndexMap.end()) {
     gifLabel = new QLabel(this);
 
-    QMovie *movie = wheelImagesGif[randomEvent - 1];
+    int eventIndex = it->second;
+    QMovie *movie = wheelImagesGif[eventIndex];
     if (movie) {
       movie->setScaledSize(QSize(img_size, img_size));
       gifLabel->setMovie(movie);
       gifLabel->move((width() - gifLabel->width()) / 2, (height() - gifLabel->height()) / 2 + y_offset);
       gifLabel->movie()->start();
     }
-
-    wheelIconGif = randomEvent - 1;
+    wheelIconGif = eventIndex;
     update();
   } else if (rotatingWheel && steeringAngleDeg != scene.steering_angle_deg) {
     steeringAngleDeg = scene.steering_angle_deg;

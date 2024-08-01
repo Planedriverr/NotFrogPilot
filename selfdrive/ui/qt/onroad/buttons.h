@@ -36,7 +36,6 @@ private:
   bool trafficModeActive;
 
   int conditionalStatus;
-  int randomEvent;
   int steeringAngleDeg;
   int wheelIcon;
   int wheelIconGif;
@@ -46,6 +45,8 @@ private:
 
   QMap<int, QPixmap> wheelImages;
   QMap<int, QMovie*> wheelImagesGif;
+
+  QString currentRandomEvent;
 
   Params paramsMemory{"/dev/shm/params"};
 };

@@ -4,7 +4,7 @@ from collections import deque, defaultdict
 
 import cereal.messaging as messaging
 from cereal import car, log
-from openpilot.common.params import Params, UnknownKeyName
+from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process, DT_MDL
 from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.swaglog import cloudlog
@@ -100,13 +100,7 @@ class TorqueEstimator(ParameterEstimator):
     # try to restore cached params
     params = Params()
     params_cache = params.get("CarParamsPrevRoute")
-    try:
-      if params.check_key(frogpilot_toggles.part_model_param + "LiveTorqueParameters"):
-        self.torque_key = frogpilot_toggles.part_model_param + "LiveTorqueParameters"
-      else:
-        self.torque_key = "LiveTorqueParameters"
-    except UnknownKeyName:
-      self.torque_key = "LiveTorqueParameters"
+    self.torque_key = frogpilot_toggles.part_model_param + "LiveTorqueParameters"
     torque_cache = params.get(self.torque_key)
     if params_cache is not None and torque_cache is not None:
       try:
@@ -250,13 +244,7 @@ def main(demo=False):
   # FrogPilot variables
   frogpilot_toggles = FrogPilotVariables.toggles
 
-  try:
-    if params.check_key(frogpilot_toggles.part_model_param + "LiveTorqueParameters"):
-      torque_key = frogpilot_toggles.part_model_param + "LiveTorqueParameters"
-    else:
-      torque_key = "LiveTorqueParameters"
-  except UnknownKeyName:
-    torque_key = "LiveTorqueParameters"
+  torque_key = frogpilot_toggles.part_model_param + "LiveTorqueParameters"
   torque_cache = params.get(torque_key)
 
   while True:

@@ -153,7 +153,6 @@ private:
   int conditionalSpeedLead;
   int conditionalStatus;
   int currentHolidayTheme;
-  int currentRandomEvent;
   int customColors;
   int customSignals;
   int desiredFollow;
@@ -166,6 +165,7 @@ private:
   QPixmap stopSignImg;
 
   QString accelerationUnit;
+  QString currentRandomEvent;
   QString leadDistanceUnit;
   QString leadSpeedUnit;
 

@@ -125,5 +125,3 @@ class SpeedLimitController:
       return self.max_speed_limit
 
     return 0
-
-SpeedLimitController = SpeedLimitController()

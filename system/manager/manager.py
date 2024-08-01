@@ -162,7 +162,7 @@ def manager_init() -> None:
     ("FullMap", "0"),
     ("GasRegenCmd", "1"),
     ("GMapKey", ""),
-    ("GoatScream", "1"),
+    ("GoatScream", "0"),
     ("GreenLightAlert", "0"),
     ("HideAlerts", "0"),
     ("HideAOLStatusBar", "0"),
