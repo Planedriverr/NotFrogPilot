@@ -91,7 +91,8 @@ private:
 
   // FrogPilot widgets
   void initializeFrogPilotWidgets();
-  void paintFrogPilotWidgets(QPainter &painter, const UIScene &scene);
+  void updateFrogPilotWidgets(QPainter &painter, const UIScene &scene);
+  void updateSignals();
 
   void drawLeadInfo(QPainter &p);
   void drawSLCConfirmation(QPainter &p);
@@ -129,8 +130,10 @@ private:
   bool speedLimitChanged;
   bool speedLimitController;
   bool trafficModeActive;
+  bool turnSignalAnimation;
   bool turnSignalLeft;
   bool turnSignalRight;
+  bool useStockColors;
   bool useSI;
   bool useViennaSLCSign;
   bool vtscControllingCurve;
@@ -148,36 +151,36 @@ private:
   float unconfirmedSpeedLimit;
 
   int alertSize;
+  int animationFrameIndex;
   int cameraView;
   int conditionalSpeed;
   int conditionalSpeedLead;
   int conditionalStatus;
-  int currentHolidayTheme;
-  int customColors;
-  int customSignals;
   int desiredFollow;
+  int modelLength;
   int obstacleDistance;
   int obstacleDistanceStock;
+  int signalAnimationLength;
+  int signalHeight;
+  int signalWidth;
   int standstillDuration;
+  int statusBarHeight;
   int stoppedEquivalence;
   int totalFrames;
+
+  QElapsedTimer standstillTimer;
 
   QPixmap stopSignImg;
 
   QString accelerationUnit;
-  QString currentRandomEvent;
   QString leadDistanceUnit;
   QString leadSpeedUnit;
+  QString signalStyle;
 
-  size_t animationFrameIndex;
-
-  std::unordered_map<int, std::tuple<QString, QColor, std::map<double, QBrush>>> themeConfiguration;
-  std::unordered_map<int, std::tuple<QString, QColor, std::map<double, QBrush>>> holidayThemeConfiguration;
-
-  std::vector<QPixmap> signalImgVector;
-
-  QElapsedTimer standstillTimer;
   QTimer *animationTimer;
+
+  std::vector<QPixmap> regularImages;
+  std::vector<QPixmap> blindspotImages;
 
   inline QColor blueColor(int alpha = 255) { return QColor(0, 150, 255, alpha); }
   inline QColor greenColor(int alpha = 242) { return QColor(23, 134, 68, alpha); }
@@ -187,8 +190,8 @@ protected:
   void initializeGL() override;
   void showEvent(QShowEvent *event) override;
   void updateFrameMat() override;
-  void drawLaneLines(QPainter &painter, const UIState *s, const float v_ego);
-  void drawLead(QPainter &painter, const cereal::ModelDataV2::LeadDataV3::Reader &lead_data, const QPointF &vd, const float v_ego);
+  void drawLaneLines(QPainter &painter, const UIState *s);
+  void drawLead(QPainter &painter, const cereal::ModelDataV2::LeadDataV3::Reader &lead_data, const QPointF &vd, const float v_ego, const QColor lead_marker_color);
   void drawHud(QPainter &p);
   void drawDriverState(QPainter &painter, const UIState *s);
   void paintEvent(QPaintEvent *event) override;

@@ -5,16 +5,23 @@ from types import SimpleNamespace
 
 from cereal import car
 from openpilot.common.conversions import Conversions as CV
-from openpilot.common.params import Params
+from openpilot.common.numpy_fast import interp
+from openpilot.common.params import Params, UnknownKeyName
 from openpilot.selfdrive.controls.lib.desire_helper import LANE_CHANGE_SPEED_MIN
+from openpilot.selfdrive.modeld.constants import ModelConstants
 from openpilot.system.version import get_build_metadata
 
 from openpilot.selfdrive.frogpilot.controls.lib.frogpilot_functions import MODELS_PATH
 from openpilot.selfdrive.frogpilot.controls.lib.model_manager import DEFAULT_MODEL, DEFAULT_MODEL_NAME, process_model_name
 
-CITY_SPEED_LIMIT = 25  # 55mph is typically the minimum speed for highways
-CRUISING_SPEED = 5     # Roughly the speed cars go when not touching the gas while in drive
-PROBABILITY = 0.6      # 60% chance of condition being true
+CITY_SPEED_LIMIT = 25                                   # 55mph is typically the minimum speed for highways
+CRUISING_SPEED = 5                                      # Roughly the speed cars go when not touching the gas while in drive
+MODEL_LENGTH = ModelConstants.IDX_N                     # Minimum length of the model
+PLANNER_TIME = ModelConstants.T_IDXS[MODEL_LENGTH - 1]  # Length of time the model projects out for
+PROBABILITY = 0.6                                       # 60% chance of condition being true
+
+def get_max_allowed_accel(v_ego):
+  return interp(v_ego, [0., 5., 20.], [4.0, 4.0, 2.0])  # ISO 15622:2018
 
 class FrogPilotVariables:
   def __init__(self):
@@ -36,7 +43,7 @@ class FrogPilotVariables:
   def toggles_updated(self):
     return self.params_memory.get_bool("FrogPilotTogglesUpdated")
 
-  def update_frogpilot_params(self, started=True):
+  def update_frogpilot_params(self, started=True, frogpilot_process=False):
     toggle = self.frogpilot_toggles
 
     openpilot_installed = self.params.get_bool("HasAcceptedTerms")
@@ -76,6 +83,15 @@ class FrogPilotVariables:
 
     toggle.automatic_updates = self.params.get_bool("AutomaticUpdates")
 
+    bonus_content = self.params.get_bool("BonusContent")
+    toggle.goat_scream = bonus_content and self.params.get_bool("GoatScream")
+    holiday_themes = bonus_content and self.params.get_bool("HolidayThemes")
+    toggle.current_holiday_theme = self.params_memory.get("CurrentHolidayTheme", encoding='utf-8') if holiday_themes else None
+    personalize_openpilot = bonus_content and self.params.get_bool("PersonalizeOpenpilot")
+    toggle.sound_pack = self.params.get("CustomSignals", encoding='utf-8') if personalize_openpilot else "stock"
+    toggle.wheel_image = self.params.get("WheelIcon", encoding='utf-8') if personalize_openpilot else "stock"
+    toggle.random_events = bonus_content and self.params.get_bool("RandomEvents")
+
     toggle.cluster_offset = self.params.get_float("ClusterOffset") if car_make == "toyota" else 1
 
     toggle.conditional_experimental_mode = openpilot_longitudinal and self.params.get_bool("ConditionalExperimental")
@@ -86,25 +102,17 @@ class FrogPilotVariables:
     toggle.conditional_stopped_lead = toggle.conditional_lead and self.params.get_bool("CEStoppedLead")
     toggle.conditional_limit = self.params.get_int("CESpeed") * speed_conversion if toggle.conditional_experimental_mode else 0
     toggle.conditional_limit_lead = self.params.get_int("CESpeedLead") * speed_conversion if toggle.conditional_experimental_mode else 0
+    toggle.conditional_model_stop_time = self.params.get_int("CEModelStopTime") if toggle.conditional_experimental_mode else 0
     toggle.conditional_navigation = toggle.conditional_experimental_mode and self.params.get_bool("CENavigation")
     toggle.conditional_navigation_intersections = toggle.conditional_navigation and self.params.get_bool("CENavigationIntersections")
     toggle.conditional_navigation_lead = toggle.conditional_navigation and self.params.get_bool("CENavigationLead")
     toggle.conditional_navigation_turns = toggle.conditional_navigation and self.params.get_bool("CENavigationTurns")
     toggle.conditional_signal = toggle.conditional_experimental_mode and self.params.get_bool("CESignal")
-    toggle.conditional_stop_lights = toggle.conditional_experimental_mode and self.params.get_bool("CEStopLights")
-    toggle.less_sensitive_lights = toggle.conditional_stop_lights and self.params.get_bool("CEStopLightsLessSensitive")
 
     custom_alerts = self.params.get_bool("CustomAlerts")
     toggle.green_light_alert = custom_alerts and self.params.get_bool("GreenLightAlert")
     toggle.lead_departing_alert = custom_alerts and self.params.get_bool("LeadDepartingAlert")
     toggle.loud_blindspot_alert = custom_alerts and self.params.get_bool("LoudBlindspotAlert")
-
-    custom_themes = self.params.get_bool("CustomTheme")
-    holiday_themes = custom_themes and self.params.get_bool("HolidayThemes")
-    toggle.current_holiday_theme = self.params_memory.get_int("CurrentHolidayTheme") if holiday_themes else 0
-    toggle.custom_sounds = self.params.get_int("CustomSounds") if custom_themes else 0
-    toggle.goat_scream = toggle.current_holiday_theme == 0 and toggle.custom_sounds == 1 and self.params.get_bool("GoatScream")
-    toggle.random_events = custom_themes and self.params.get_bool("RandomEvents")
 
     custom_ui = self.params.get_bool("CustomUI")
     custom_paths = custom_ui and self.params.get_bool("CustomPaths")
@@ -141,6 +149,8 @@ class FrogPilotVariables:
     toggle.traffic_mode_jerk_danger = [self.params.get_int("TrafficJerkDanger") / 100., toggle.aggressive_jerk_danger] if traffic_profile else [1.0, 1.0]
     toggle.traffic_mode_jerk_speed = [self.params.get_int("TrafficJerkSpeed") / 100., toggle.aggressive_jerk_speed] if traffic_profile else [0.5, 0.5]
     toggle.traffic_mode_t_follow = [self.params.get_float("TrafficFollow"), toggle.aggressive_follow] if traffic_profile else [0.5, 1.0]
+    onroad_distance_button = toggle.custom_personalities and self.params.get_bool("OnroadDistanceButton")
+    toggle.distance_icons = self.params.get("CustomDistanceIcons", encoding='utf-8') if onroad_distance_button else "stock"
 
     toggle.experimental_mode_via_press = openpilot_longitudinal and self.params.get_bool("ExperimentalModeActivation")
     toggle.experimental_mode_via_distance = toggle.experimental_mode_via_press and self.params.get_bool("ExperimentalModeViaDistance")
@@ -167,11 +177,11 @@ class FrogPilotVariables:
 
     longitudinal_tune = openpilot_longitudinal and self.params.get_bool("LongitudinalTune")
     toggle.acceleration_profile = self.params.get_int("AccelerationProfile") if longitudinal_tune else 0
-    toggle.aggressive_acceleration = longitudinal_tune and self.params.get_bool("AggressiveAcceleration")
     toggle.deceleration_profile = self.params.get_int("DecelerationProfile") if longitudinal_tune else 0
+    toggle.human_acceleration = longitudinal_tune and self.params.get_bool("HumanAcceleration")
+    toggle.human_following = longitudinal_tune and self.params.get_bool("HumanFollowing")
     toggle.increased_stopping_distance = self.params.get_int("StoppingDistance") * distance_conversion if longitudinal_tune else 0
     toggle.lead_detection_threshold = self.params.get_int("LeadDetectionThreshold") / 100. if longitudinal_tune else 0.5
-    toggle.smoother_braking = longitudinal_tune and self.params.get_bool("SmoothBraking")
     toggle.sport_plus = longitudinal_tune and toggle.acceleration_profile == 3
     toggle.traffic_mode = longitudinal_tune and self.params.get_bool("TrafficMode")
 
@@ -204,6 +214,10 @@ class FrogPilotVariables:
     else:
       current_model_name = available_model_names.split(',')[available_models.split(',').index(toggle.model)]
       toggle.part_model_param = process_model_name(current_model_name)
+      try:
+        self.params.check_key(toggle.part_model_param + "CalibrationParams")
+      except UnknownKeyName:
+        toggle.part_model_param = ""
     navigation_models = self.params.get("NavigationModels", encoding='utf-8')
     if navigation_models is not None:
       toggle.navigationless_model = toggle.model not in navigation_models.split(',')
@@ -216,8 +230,9 @@ class FrogPilotVariables:
       toggle.radarless_model = False
     toggle.clairvoyant_model = toggle.model == "clairvoyant-driver"
     toggle.secretgoodopenpilot_model = toggle.model == "secret-good-openpilot"
-    self.params_memory.put("CurrentModel", toggle.model)
-    self.params_memory.put("CurrentModelName", current_model_name)
+    if frogpilot_process:
+      self.params_memory.put("CurrentModel", toggle.model)
+      self.params_memory.put("CurrentModelName", current_model_name)
 
     quality_of_life_controls = self.params.get_bool("QOLControls")
     toggle.custom_cruise_increase = self.params.get_int("CustomCruise") if quality_of_life_controls and not pcm_cruise else 1

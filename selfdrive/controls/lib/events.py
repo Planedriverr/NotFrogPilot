@@ -348,21 +348,21 @@ def joystick_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster,
 # FrogPilot Alerts
 def holiday_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int) -> Alert:
   holiday_messages = {
-    1: ("Happy New Year! 🎉", "newYearsDayAlert"),
-    2: ("Happy Valentine's Day! ❤️", "valentinesDayAlert"),
-    3: ("Happy St. Patrick's Day! 🍀", "stPatricksDayAlert"),
-    4: ("Happy World Frog Day! 🐸", "worldFrogDayAlert"),
-    5: ("Happy April Fool's Day! 🤡", "aprilFoolsAlert"),
-    6: ("Happy Easter! 🐰", "easterAlert"),
-    7: ("¡Feliz Cinco de Mayo! 🌮", "cincoDeMayoAlert"),
-    8: ("Happy Fourth of July! 🎆", "fourthOfJulyAlert"),
-    9: ("Happy Halloween! 🎃", "halloweenAlert"),
-    10: ("Happy Thanksgiving! 🦃", "thanksgivingAlert"),
-    11: ("Merry Christmas! 🎄", "christmasAlert")
+    "new_years": ("Happy New Year! 🎉", "newYearsDayAlert"),
+    "valentines": ("Happy Valentine's Day! ❤️", "valentinesDayAlert"),
+    "st_patricks": ("Happy St. Patrick's Day! 🍀", "stPatricksDayAlert"),
+    "world_frog_day": ("Happy World Frog Day! 🐸", "worldFrogDayAlert"),
+    "april_fools": ("Happy April Fool's Day! 🤡", "aprilFoolsAlert"),
+    "easter_week": ("Happy Easter! 🐰", "easterAlert"),
+    "cinco_de_mayo": ("¡Feliz Cinco de Mayo! 🌮", "cincoDeMayoAlert"),
+    "fourth_of_july": ("Happy Fourth of July! 🎆", "fourthOfJulyAlert"),
+    "halloween_week": ("Happy Halloween! 🎃", "halloweenAlert"),
+    "thanksgiving_week": ("Happy Thanksgiving! 🦃", "thanksgivingAlert"),
+    "christmas_week": ("Merry Christmas! 🎄", "christmasAlert")
   }
 
-  theme_id = params_memory.get_int("CurrentHolidayTheme")
-  message, alert_type = holiday_messages.get(theme_id, ("", ""))
+  holiday_name = params_memory.get("CurrentHolidayTheme", encoding='utf-8')
+  message, alert_type = holiday_messages.get(holiday_name, ("", ""))
 
   return Alert(
     message,

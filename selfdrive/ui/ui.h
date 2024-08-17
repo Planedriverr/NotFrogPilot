@@ -152,7 +152,6 @@ typedef struct UIScene {
   bool hide_max_speed;
   bool hide_speed;
   bool hide_speed_ui;
-  bool holiday_themes;
   bool is_CPU;
   bool is_GPU;
   bool is_IP;
@@ -204,8 +203,9 @@ typedef struct UIScene {
   bool turn_signal_left;
   bool turn_signal_right;
   bool unlimited_road_ui_length;
-  bool use_kaofui_icons;
   bool use_si;
+  bool use_stock_colors;
+  bool use_stock_wheel;
   bool use_vienna_slc_sign;
   bool vtsc_controlling_curve;
   bool wake_up_screen;
@@ -241,10 +241,6 @@ typedef struct UIScene {
   int conditional_speed;
   int conditional_speed_lead;
   int conditional_status;
-  int current_holiday_theme;
-  int custom_colors;
-  int custom_icons;
-  int custom_signals;
   int desired_follow;
   int driver_camera_timer;
   int map_style;
@@ -259,12 +255,18 @@ typedef struct UIScene {
   int steering_angle_deg;
   int stopped_equivalence;
   int tethering_config;
-  int wheel_icon;
+
+  QColor lane_lines_color;
+  QColor lead_marker_color;
+  QColor path_color;
+  QColor path_edges_color;
+  QColor road_edges_color;
+  QColor sidebar_color1;
+  QColor sidebar_color2;
+  QColor sidebar_color3;
 
   QPolygonF track_adjacent_vertices[6];
   QPolygonF track_edge_vertices;
-
-  QString current_random_event;
 
 } UIScene;
 
@@ -305,6 +307,7 @@ signals:
   // FrogPilot signals
   void driveRated();
   void reviewModel();
+
 private slots:
   void update();
 

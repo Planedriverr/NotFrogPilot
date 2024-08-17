@@ -9,6 +9,8 @@ from openpilot.common.realtime import DT_MDL
 from openpilot.selfdrive.controls.controlsd import Desire
 from openpilot.selfdrive.controls.lib.events import EventName, Events
 
+from openpilot.selfdrive.frogpilot.controls.lib.theme_manager import update_wheel_image
+
 class FrogPilotEvents:
   def __init__(self, FrogPilotPlanner):
     self.params = Params()
@@ -36,15 +38,18 @@ class FrogPilotEvents:
     self.max_acceleration = 0
     self.random_event_timer = 0
 
-  def update(self, carState, frogpilotCarControl, frogpilotCarState, modelData, v_cruise, frogpilot_toggles):
+  def update(self, carState, controlsState, frogpilotCarControl, frogpilotCarState, modelData, frogpilot_toggles):
+    v_cruise = max(controlsState.vCruise, controlsState.vCruiseCluster)
+
     self.events.clear()
 
     if self.random_event_played:
       self.random_event_timer += DT_MDL
       if self.random_event_timer >= 4:
+        update_wheel_image(frogpilot_toggles.wheel_image, None, False)
+        self.params_memory.put_bool("UpdateWheelImage", True)
         self.random_event_played = False
         self.random_event_timer = 0
-        self.params_memory.remove("CurrentRandomEvent")
 
     if self.frogpilot_planner.frogpilot_vcruise.forcing_stop:
       self.events.add(EventName.forcingStop)
@@ -56,7 +61,7 @@ class FrogPilotEvents:
     else:
       self.stopped_for_light = False
 
-    if not self.holiday_theme_played and frogpilot_toggles.current_holiday_theme != 0 and self.frame >= 10:
+    if not self.holiday_theme_played and frogpilot_toggles.current_holiday_theme != None and self.frame >= 10:
       self.events.add(EventName.holidayActive)
       self.holiday_theme_played = True
 
@@ -78,36 +83,37 @@ class FrogPilotEvents:
       else:
         self.max_acceleration = 0
 
-      if not self.accel30_played and 2.5 > self.max_acceleration >= 2.0 and acceleration < 1.5:
+      if not self.accel30_played and 3.5 > self.max_acceleration >= 3.0 and acceleration < 1.5:
         self.events.add(EventName.accel30)
-        self.params_memory.put("CurrentRandomEvent", "accel30")
+        update_wheel_image("weeb_wheel")
+        self.params_memory.put_bool("UpdateWheelImage", True)
         self.accel30_played = True
         self.random_event_played = True
         self.max_acceleration = 0
 
-      elif not self.accel35_played and 3.0 > self.max_acceleration >= 2.5 and acceleration < 1.5:
+      elif not self.accel35_played and 4.0 > self.max_acceleration >= 3.5 and acceleration < 1.5:
         self.events.add(EventName.accel35)
-        self.params_memory.put("CurrentRandomEvent", "accel35")
+        update_wheel_image("tree_fiddy")
+        self.params_memory.put_bool("UpdateWheelImage", True)
         self.accel35_played = True
         self.random_event_played = True
         self.max_acceleration = 0
 
-      elif not self.accel40_played and self.max_acceleration >= 3.0 and acceleration < 1.5:
+      elif not self.accel40_played and self.max_acceleration >= 4.0 and acceleration < 1.5:
         self.events.add(EventName.accel40)
-        self.params_memory.put("CurrentRandomEvent", "accel40")
+        update_wheel_image("great_scott")
+        self.params_memory.put_bool("UpdateWheelImage", True)
         self.accel40_played = True
         self.random_event_played = True
         self.max_acceleration = 0
 
       if not self.dejaVu_played and self.frogpilot_planner.taking_curve_quickly:
         self.events.add(EventName.dejaVuCurve)
-        self.params_memory.put("CurrentRandomEvent", "dejaVuCurve")
         self.dejaVu_played = True
         self.random_event_played = True
 
       if not self.no_entry_alert_played and frogpilotCarControl.noEntryEventTriggered:
         self.events.add(EventName.hal9000)
-        self.params_memory.put("CurrentRandomEvent", "hal9000")
         self.no_entry_alert_played = True
         self.random_event_played = True
 
@@ -122,15 +128,17 @@ class FrogPilotEvents:
           event_choice = random.choice(event_choices)
           if event_choice == "firefoxSteerSaturated":
             self.events.add(EventName.firefoxSteerSaturated)
-            self.params_memory.put("CurrentRandomEvent", "firefoxSteerSaturated")
+            update_wheel_image("firefox")
+            self.params_memory.put_bool("UpdateWheelImage", True)
             self.firefox_played = True
           elif event_choice == "goatSteerSaturated":
             self.events.add(EventName.goatSteerSaturated)
-            self.params_memory.put("CurrentRandomEvent", "goatSteerSaturated")
+            update_wheel_image("goat")
+            self.params_memory.put_bool("UpdateWheelImage", True)
             self.goat_played = True
           self.random_event_played = True
 
-      if not self.vCruise69_played and 70 > v_cruise * (CV.MS_TO_KPH if frogpilot_toggles.is_metric else CV.MS_TO_MPH) >= 69:
+      if not self.vCruise69_played and 70 > v_cruise * (1 if frogpilot_toggles.is_metric else CV.KPH_TO_MPH) >= 69:
         self.events.add(EventName.vCruise69)
         self.vCruise69_played = True
         self.random_event_played = True
@@ -140,7 +148,7 @@ class FrogPilotEvents:
         self.fcw_played = True
         self.random_event_played = True
 
-    if frogpilot_toggles.speed_limit_alert and self.speed_limit_changed:
+    if frogpilot_toggles.speed_limit_alert and self.frogpilot_planner.frogpilot_vcruise.speed_limit_changed:
       self.events.add(EventName.speedLimitChanged)
 
     if self.frame == 4 and self.params.get("NNFFModelName", encoding='utf-8') is not None:

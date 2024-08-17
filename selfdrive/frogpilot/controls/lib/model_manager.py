@@ -9,7 +9,7 @@ import urllib.request
 from openpilot.common.basedir import BASEDIR
 from openpilot.common.params import Params
 
-from openpilot.selfdrive.frogpilot.controls.lib.download_functions import GITHUB_URL, GITLAB_URL, get_remote_file_size, get_repository_url, verify_download
+from openpilot.selfdrive.frogpilot.controls.lib.download_functions import GITHUB_URL, GITLAB_URL, download_file, get_repository_url, handle_error, verify_download
 from openpilot.selfdrive.frogpilot.controls.lib.frogpilot_functions import MODELS_PATH, delete_file
 
 VERSION = "v5"
@@ -27,85 +27,42 @@ class ModelManager:
     self.params = Params()
     self.params_memory = Params("/dev/shm/params")
 
-  def handle_error(self, destination, error_message, error):
-    print(f"Error occurred: {error}")
-    self.params_memory.put("ModelDownloadProgress", error_message)
-    self.params_memory.remove("DownloadAllModels")
-    self.params_memory.remove("ModelToDownload")
-    if destination:
-      delete_file(destination)
-
-  def download_file(self, destination, url):
-    try:
-      with requests.get(url, stream=True, timeout=5) as r:
-        r.raise_for_status()
-        total_size = get_remote_file_size(url)
-        downloaded_size = 0
-
-        with open(destination, 'wb') as f:
-          for chunk in r.iter_content(chunk_size=8192):
-            if self.params_memory.get_bool("CancelModelDownload"):
-              self.handle_error(destination, "Download cancelled...", "Download cancelled...")
-              return
-
-            if chunk:
-              f.write(chunk)
-              downloaded_size += len(chunk)
-              progress = (downloaded_size / total_size) * 100
-
-              if progress != 100:
-                self.params_memory.put("ModelDownloadProgress", f"{progress:.0f}%")
-              else:
-                self.params_memory.put("ModelDownloadProgress", "Verifying authenticity...")
-
-    except requests.HTTPError as http_error:
-      self.handle_error(destination, f"Failed: Server error ({http_error.response.status_code})", http_error)
-    except requests.ConnectionError as connection_error:
-      self.handle_error(destination, "Failed: Connection dropped...", connection_error)
-    except requests.Timeout as timeout_error:
-      self.handle_error(destination, "Failed: Download timed out...", timeout_error)
-    except requests.RequestException as request_error:
-      self.handle_error(destination, "Failed: Network request error. Check connection.", request_error)
-    except Exception as e:
-      self.handle_error(destination, "Failed: Unexpected error.", e)
-
-  def handle_existing_model(self, model):
-    print(f"Model {model} already exists, skipping download...")
-    self.params_memory.put("ModelDownloadProgress", "Model already exists...")
-    self.params_memory.remove("ModelToDownload")
+    self.cancel_download_param = "CancelModelDownload"
+    self.download_param = "ModelToDownload"
+    self.download_progress_param = "ModelDownloadProgress"
 
   def handle_verification_failure(self, model, model_path):
-    if self.params_memory.get_bool("CancelModelDownload"):
+    if self.params_memory.get_bool(self.cancel_download_param):
       return
 
     print(f"Verification failed for model {model}. Retrying from GitLab...")
     model_url = f"{GITLAB_URL}Models/{model}.thneed"
-    self.download_file(model_path, model_url)
+    download_file(self.cancel_download_param, model_path, self.download_progress_param, model_url, self.download_param, self.params_memory)
 
     if verify_download(model_path, model_url):
       print(f"Model {model} redownloaded and verified successfully from GitLab.")
     else:
-      self.handle_error(model_path, "GitLab verification failed", "Verification failed")
+      handle_error(model_path, "GitLab verification failed", "Verification failed", self.download_param, self.download_progress_param, self.params_memory)
 
   def download_model(self, model_to_download):
     model_path = os.path.join(MODELS_PATH, f"{model_to_download}.thneed")
     if os.path.exists(model_path):
-      self.handle_existing_model(model_to_download)
+      handle_error(model_path, "Model already exists...", "Model already exists...", self.download_param, self.download_progress_param, self.params_memory)
       return
 
     self.repo_url = get_repository_url()
     if not self.repo_url:
-      self.handle_error(model_path, "GitHub and GitLab are offline...", "Repository unavailable")
+      handle_error(model_path, "GitHub and GitLab are offline...", "Repository unavailable", self.download_param, self.download_progress_param, self.params_memory)
       return
 
     model_url = f"{self.repo_url}Models/{model_to_download}.thneed"
     print(f"Downloading model: {model_to_download}")
-    self.download_file(model_path, model_url)
+    download_file(self.cancel_download_param, model_path, self.download_progress_param, model_url, self.download_param, self.params_memory)
 
     if verify_download(model_path, model_url):
       print(f"Model {model_to_download} downloaded and verified successfully!")
-      self.params_memory.put("ModelDownloadProgress", "Downloaded!")
-      self.params_memory.remove("ModelToDownload")
+      self.params_memory.put(self.download_progress_param, "Downloaded!")
+      self.params_memory.remove(self.download_param)
     else:
       self.handle_verification_failure(model_to_download, model_path)
 
@@ -148,36 +105,33 @@ class ModelManager:
 
       if os.path.exists(model_path):
         if automatically_update_models:
-          local_file_size = os.path.getsize(model_path)
-          remote_file_size = get_remote_file_size(model_url)
-
-          if remote_file_size and remote_file_size != local_file_size:
+          if not verify_download(model_path, model_url):
             print(f"Model {model} is outdated. Re-downloading...")
             delete_file(model_path)
-            self.remove_model_params(available_model_names, model)
+            self.remove_model_params(available_model_names, available_models, model)
             self.queue_model_download(model)
             all_models_downloaded = False
       else:
         if automatically_update_models:
           print(f"Model {model} isn't downloaded. Downloading...")
-          self.remove_model_params(available_model_names, model)
+          self.remove_model_params(available_model_names, available_models, model)
           self.queue_model_download(model)
         all_models_downloaded = False
 
     return all_models_downloaded
 
-  def remove_model_params(self, available_model_names, model):
+  def remove_model_params(self, available_model_names, available_models, model):
     part_model_param = process_model_name(available_model_names[available_models.index(model)])
     self.params.remove(part_model_param + "CalibrationParams")
     self.params.remove(part_model_param + "LiveTorqueParameters")
 
   def queue_model_download(self, model, model_name=None):
-    while self.params_memory.get("ModelToDownload", encoding='utf-8'):
+    while self.params_memory.get(self.download_param, encoding='utf-8'):
       time.sleep(1)
 
-    self.params_memory.put("ModelToDownload", model)
+    self.params_memory.put(self.download_param, model)
     if model_name:
-      self.params_memory.put("ModelDownloadProgress", f"Downloading {model_name}...")
+      self.params_memory.put(self.download_progress_param, f"Downloading {model_name}...")
 
   def validate_models(self):
     current_model = self.params.get("Model", encoding='utf-8')
@@ -226,19 +180,24 @@ class ModelManager:
   def download_all_models(self):
     self.repo_url = get_repository_url()
     if not self.repo_url:
-      self.handle_error(None, "GitHub and GitLab are offline...", "Repository unavailable")
+      handle_error(None, "GitHub and GitLab are offline...", "Repository unavailable", self.download_param, self.download_progress_param, self.params_memory)
       return
 
     model_info = self.fetch_models(f"{self.repo_url}Versions/model_names_{VERSION}.json")
     if not model_info:
-      self.handle_error(None, "Unable to update model list...", "Model list unavailable")
+      handle_error(None, "Unable to update model list...", "Model list unavailable", self.download_param, self.download_progress_param, self.params_memory)
       return
 
-    available_models = self.params.get("AvailableModels", encoding='utf-8').split(',')
+    available_models = self.params.get("AvailableModels", encoding='utf-8')
+    if not available_models:
+      handle_error(None, "There's no model to download...", "There's no model to download...", self.download_param, self.download_progress_param, self.params_memory)
+      return
+
+    available_models = available_models.split(',')
     available_model_names = self.params.get("AvailableModelsNames", encoding='utf-8').split(',')
 
     for model in available_models:
-      if self.params_memory.get_bool("CancelModelDownload"):
+      if self.params_memory.get_bool(self.cancel_download_param):
         return
 
       if not os.path.exists(os.path.join(MODELS_PATH, f"{model}.thneed")):
@@ -250,12 +209,12 @@ class ModelManager:
 
         self.queue_model_download(model, cleaned_model_name)
 
-        while self.params_memory.get("ModelToDownload", encoding='utf-8'):
+        while self.params_memory.get(self.download_param, encoding='utf-8'):
           time.sleep(1)
 
     while not all(os.path.exists(os.path.join(MODELS_PATH, f"{model}.thneed")) for model in available_models):
       time.sleep(1)
 
-    self.params_memory.put("ModelDownloadProgress", "All models downloaded!")
+    self.params_memory.put(self.download_progress_param, "All models downloaded!")
     self.params_memory.remove("DownloadAllModels")
     self.params.put_bool_nonblocking("ModelsDownloaded", True)
