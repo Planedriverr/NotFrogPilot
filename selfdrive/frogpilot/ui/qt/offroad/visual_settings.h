@@ -37,7 +37,7 @@ private:
   std::set<QString> customOnroadUIKeys = {"Compass", "CustomPaths", "PedalsOnUI", "RoadNameUI", "RotatingWheel", "ShowStoppingPoint"};
   std::set<QString> developerUIKeys = {"BorderMetrics", "FPSCounter", "LateralMetrics", "LongitudinalMetrics", "NumericalTemp", "SidebarMetrics", "UseSI"};
   std::set<QString> modelUIKeys = {"DynamicPathWidth", "HideLeadMarker", "LaneLinesWidth", "PathEdgeWidth", "PathWidth", "RoadEdgesWidth", "UnlimitedLength"};
-  std::set<QString> personalizeOpenpilotKeys = {"CustomColors", "CustomIcons", "CustomSignals", "CustomSounds", "DownloadStatusLabel", "WheelIcon"};
+  std::set<QString> personalizeOpenpilotKeys = {"CustomColors", "CustomIcons", "CustomSignals", "CustomSounds", "DownloadStatusLabel", "StartupAlert", "WheelIcon"};
   std::set<QString> qolKeys = {"BigMap", "CameraView", "DriverCamera", "FullMap", "HideSpeed", "MapStyle", "StoppedTimer", "WheelSpeed"};
   std::set<QString> screenKeys = {"HideUIElements", "ScreenBrightness", "ScreenBrightnessOnroad", "ScreenRecorder", "ScreenTimeout", "ScreenTimeoutOnroad", "StandbyMode"};
 

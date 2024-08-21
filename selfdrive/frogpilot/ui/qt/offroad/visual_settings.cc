@@ -24,6 +24,7 @@ FrogPilotVisualsPanel::FrogPilotVisualsPanel(SettingsWindow *parent) : FrogPilot
     {"CustomSignals", tr("Turn Signals"), tr("Add themed animation for your turn signals.\n\nWant to submit your own turn signal animation? Post it in the 'feature-request' channel in the FrogPilot Discord!"), ""},
     {"WheelIcon", tr("Steering Wheel"), tr("Replace the default steering wheel icon with a custom icon."), ""},
     {"DownloadStatusLabel", tr("Download Status"), "", ""},
+    {"StartupAlert", tr("Startup Alert"), tr("Customize the 'Startup' alert that is shown when you go onroad."), ""},
     {"RandomEvents", tr("Random Events"), tr("Enjoy a bit of unpredictability with random events that can occur during certain driving conditions. This is purely cosmetic and has no impact on driving controls!"), ""},
 
     {"CustomAlerts", tr("Custom Alerts"), tr("Enable custom alerts for openpilot events."), "../frogpilot/assets/toggle_icons/icon_green_light.png"},
@@ -768,6 +769,43 @@ FrogPilotVisualsPanel::FrogPilotVisualsPanel(SettingsWindow *parent) : FrogPilot
     } else if (param == "DownloadStatusLabel") {
       downloadStatusLabel = new LabelControl(title, "Idle");
       visualToggle = reinterpret_cast<AbstractControl*>(downloadStatusLabel);
+    } else if (param == "StartupAlert") {
+      std::vector<QString> startupAlertOptions{tr("STOCK"), tr("FROGPILOT"), tr("CUSTOM"), tr("CLEAR")};
+      FrogPilotButtonsControl *startupAlertButton = new FrogPilotButtonsControl(title, desc, icon, startupAlertOptions);
+      QObject::connect(startupAlertButton, &FrogPilotButtonsControl::buttonClicked, [=](int id) {
+        int maxLengthTop = 40;
+        int maxLengthBottom = 50;
+
+        QString stockTop = "Be ready to take over at any time";
+        QString stockBottom = "Always keep hands on wheel and eyes on road";
+
+        QString frogpilotTop = "Hippity hoppity this is my property";
+        QString frogpilotBottom = "so I do what I want 🐸";
+
+        QString currentTop = QString::fromStdString(params.get("StartupMessageTop"));
+        QString currentBottom = QString::fromStdString(params.get("StartupMessageBottom"));
+
+        if (id == 0) {
+          params.put("StartupMessageTop", stockTop.toStdString());
+          params.put("StartupMessageBottom", stockBottom.toStdString());
+        } else if (id == 1) {
+          params.put("StartupMessageTop", frogpilotTop.toStdString());
+          params.put("StartupMessageBottom", frogpilotBottom.toStdString());
+        } else if (id == 2) {
+          QString newTop = InputDialog::getText(tr("Enter your text for the top half"), this, tr("Characters: 0/%1").arg(maxLengthTop), false, -1, currentTop, maxLengthTop).trimmed();
+          if (newTop.length() > 0) {
+            params.putNonBlocking("StartupMessageTop", newTop.toStdString());
+            QString newBottom = InputDialog::getText(tr("Enter your text for the bottom half"), this, tr("Characters: 0/%1").arg(maxLengthBottom), false, -1, currentBottom, maxLengthBottom).trimmed();
+            if (newBottom.length() > 0) {
+              params.putNonBlocking("StartupMessageBottom", newBottom.toStdString());
+            }
+          }
+        } else if (id == 3) {
+          params.remove("StartupMessageTop");
+          params.remove("StartupMessageBottom");
+        }
+      });
+      visualToggle = reinterpret_cast<AbstractControl*>(startupAlertButton);
 
     } else if (param == "CustomAlerts") {
       FrogPilotParamManageControl *customAlertsToggle = new FrogPilotParamManageControl(param, title, desc, icon, this);

@@ -315,6 +315,8 @@ def manager_init() -> None:
     ("SNGHack", "1"),
     ("SpeedLimitChangedAlert", "1"),
     ("SpeedLimitController", "1"),
+    ("StartupMessageBottom", "so I do what I want 🐸"),
+    ("StartupMessageTop", "Hippity hoppity this is my property"),
     ("StandardFollow", "1.45"),
     ("StandardJerkAcceleration", "100"),
     ("StandardJerkDanger", "100"),

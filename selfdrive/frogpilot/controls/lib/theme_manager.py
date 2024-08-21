@@ -153,20 +153,20 @@ class ThemeManager:
     for holiday, date in holidays.items():
       if (holiday.endswith("_week") and self.is_within_week_of(date, current_date)) or (current_date.date() == date.date()):
         if holiday != self.previous_assets.get("holiday_theme"):
-          self.params_memory.put("CurrentHolidayTheme", holiday)
+          self.params.put("CurrentHolidayTheme", holiday)
           self.update_active_theme()
         self.previous_assets["holiday_theme"] = holiday
         return
 
     if "holiday_theme" in self.previous_assets:
-      self.params_memory.remove("CurrentHolidayTheme")
+      self.params.remove("CurrentHolidayTheme")
       self.update_active_theme()
     self.previous_assets.pop("holiday_theme", None)
 
   def update_active_theme(self):
     bonus_content = self.params.get_bool("BonusContent")
     holiday_themes = bonus_content and self.params.get_bool("HolidayThemes")
-    current_holiday_theme = self.params_memory.get("CurrentHolidayTheme", encoding='utf-8') if holiday_themes else None
+    current_holiday_theme = self.previous_assets.get("holiday_theme") if holiday_themes else None
     personalize_openpilot = bonus_content and self.params.get_bool("PersonalizeOpenpilot")
 
     default_value = "stock"

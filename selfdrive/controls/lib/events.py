@@ -13,9 +13,6 @@ from openpilot.common.params import Params
 from openpilot.common.realtime import DT_CTRL
 from openpilot.selfdrive.locationd.calibrationd import MIN_SPEED_FILTER
 
-params = Params()
-params_memory = Params("/dev/shm/params")
-
 AlertSize = log.ControlsState.AlertSize
 AlertStatus = log.ControlsState.AlertStatus
 VisualAlert = car.CarControl.HUDControl.VisualAlert
@@ -229,11 +226,13 @@ def user_soft_disable_alert(alert_text_2: str) -> AlertCallbackType:
   return func
 
 def startup_master_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int) -> Alert:
+  params = Params()
+
   branch = get_short_branch()  # Ensure get_short_branch is cached to avoid lags on startup
   if "REPLAY" in os.environ:
     branch = "replay"
 
-  return StartupAlert("Hippity hoppity this is my property", "so I do what I want 🐸", alert_status=AlertStatus.frogpilot)
+  return StartupAlert(params.get("StartupMessageTop", encoding='utf-8'), params.get("StartupMessageBottom", encoding='utf-8'), alert_status=AlertStatus.frogpilot)
 
 def below_engage_speed_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int) -> Alert:
   return NoEntryAlert(f"Drive above {get_display_speed(CP.minEnableSpeed, metric)} to engage")
@@ -257,7 +256,7 @@ def calibration_incomplete_alert(CP: car.CarParams, CS: car.CarState, sm: messag
 
 
 def torque_nn_load_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int) -> Alert:
-  model_name = params.get("NNFFModelName", encoding='utf-8')
+  model_name = Params().get("NNFFModelName", encoding='utf-8')
   if model_name == "":
     return Alert(
       "NNFF Torque Controller not available",
@@ -361,7 +360,7 @@ def holiday_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, 
     "christmas_week": ("Merry Christmas! 🎄", "christmasAlert")
   }
 
-  holiday_name = params_memory.get("CurrentHolidayTheme", encoding='utf-8')
+  holiday_name = Params().get("CurrentHolidayTheme", encoding='utf-8')
   message, alert_type = holiday_messages.get(holiday_name, ("", ""))
 
   return Alert(

@@ -86,7 +86,7 @@ class FrogPilotVariables:
     bonus_content = self.params.get_bool("BonusContent")
     toggle.goat_scream = bonus_content and self.params.get_bool("GoatScream")
     holiday_themes = bonus_content and self.params.get_bool("HolidayThemes")
-    toggle.current_holiday_theme = self.params_memory.get("CurrentHolidayTheme", encoding='utf-8') if holiday_themes else None
+    toggle.current_holiday_theme = self.params.get("CurrentHolidayTheme", encoding='utf-8') if holiday_themes else None
     personalize_openpilot = bonus_content and self.params.get_bool("PersonalizeOpenpilot")
     toggle.sound_pack = self.params.get("CustomSignals", encoding='utf-8') if personalize_openpilot else "stock"
     toggle.wheel_image = self.params.get("WheelIcon", encoding='utf-8') if personalize_openpilot else "stock"
