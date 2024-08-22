@@ -251,8 +251,7 @@ static void update_state(UIState *s) {
   }
   if (sm.updated("deviceState")) {
     auto deviceState = sm["deviceState"].getDeviceState();
-    scene.online = deviceState.getNetworkType() != cereal::DeviceState::NetworkType::NONE;
-    scene.online &= !deviceState.getNetworkMetered();
+    scene.online = deviceState.getNetworkType() == cereal::DeviceState::NetworkType::WIFI;
   }
   if (sm.updated("frogpilotCarControl")) {
     auto frogpilotCarControl = sm["frogpilotCarControl"].getFrogpilotCarControl();
