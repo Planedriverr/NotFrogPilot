@@ -45,7 +45,7 @@ AnnotatedCameraWidget::AnnotatedCameraWidget(VisionStreamType type, QWidget* par
   initializeFrogPilotWidgets();
 }
 
-void AnnotatedCameraWidget::updateState(const UIState &s) {
+void AnnotatedCameraWidget::updateState(int alert_height, const UIState &s) {
   const int SET_SPEED_NA = 255;
   const SubMaster &sm = *(s.sm);
 
@@ -98,6 +98,9 @@ void AnnotatedCameraWidget::updateState(const UIState &s) {
     map_settings_btn->setVisible(!hideBottomIcons && compass && !hideMapIcon);
     main_layout->setAlignment(map_settings_btn, (rightHandDM && !compass || !rightHandDM && compass ? Qt::AlignLeft : Qt::AlignRight) | Qt::AlignBottom);
   }
+
+  // Update FrogPilot widgets
+  updateFrogPilotWidgets(alert_height, s.scene);
 }
 
 void AnnotatedCameraWidget::drawHud(QPainter &p) {
@@ -359,7 +362,7 @@ void AnnotatedCameraWidget::drawLaneLines(QPainter &painter, const UIState *s) {
       if (scene.track_vertices[track_idx].y() < 0 || scene.track_vertices[track_idx].y() > height()) continue;
 
       // Flip so 0 is bottom of frame
-      float lin_grad_point = (height() - scene.track_vertices[i].y()) / height();
+      float lin_grad_point = (height() - scene.track_vertices[track_idx].y()) / height();
 
       // If acceleration is between -0.25 and 0.25, resort to the theme color
       if (std::abs(acceleration[i]) < 0.25 && !useStockColors) {
@@ -721,7 +724,7 @@ void AnnotatedCameraWidget::paintEvent(QPaintEvent *event) {
   pm->send("uiDebug", msg);
 
   // Paint FrogPilot widgets
-  updateFrogPilotWidgets(painter, s->scene);
+  paintFrogPilotWidgets(painter);
 }
 
 void AnnotatedCameraWidget::showEvent(QShowEvent *event) {
@@ -768,7 +771,7 @@ void AnnotatedCameraWidget::initializeFrogPilotWidgets() {
   recordTimer->start(75);
 }
 
-void AnnotatedCameraWidget::updateFrogPilotWidgets(QPainter &painter, const UIScene &scene) {
+void AnnotatedCameraWidget::updateFrogPilotWidgets(int alert_height, const UIScene &scene) {
   if (is_metric || useSI) {
     accelerationUnit = tr("m/s²");
     leadDistanceUnit = tr(mapOpen ? "m" : "meters");
@@ -787,13 +790,10 @@ void AnnotatedCameraWidget::updateFrogPilotWidgets(QPainter &painter, const UISc
     speedConversion = MS_TO_MPH;
   }
 
-  alertSize = scene.alert_size;
+  alertHeight = alert_height;
 
   alwaysOnLateralActive = scene.always_on_lateral_active;
   showAlwaysOnLateralStatusBar = scene.show_aol_status_bar;
-  if ((showAlwaysOnLateralStatusBar || showConditionalExperimentalStatusBar || roadNameUI) && !bigMapOpen) {
-    drawStatusBar(painter);
-  }
 
   blindSpotLeft = scene.blind_spot_left;
   blindSpotRight = scene.blind_spot_right;
@@ -835,9 +835,6 @@ void AnnotatedCameraWidget::updateFrogPilotWidgets(QPainter &painter, const UISc
   leadInfo = scene.lead_info;
   obstacleDistance = scene.obstacle_distance;
   obstacleDistanceStock = scene.obstacle_distance_stock;
-  if (leadInfo && !bigMapOpen) {
-    drawLeadInfo(painter);
-  }
 
   mapOpen = scene.map_open;
   bigMapOpen = mapOpen && scene.big_map;
@@ -876,9 +873,6 @@ void AnnotatedCameraWidget::updateFrogPilotWidgets(QPainter &painter, const UISc
   speedLimitChanged = speedLimitController && scene.speed_limit_changed;
   unconfirmedSpeedLimit = speedLimitController ? scene.unconfirmed_speed_limit : 0;
   useViennaSLCSign = scene.use_vienna_slc_sign;
-  if (speedLimitChanged) {
-    drawSLCConfirmation(painter);
-  }
 
   bool stoppedTimer = scene.stopped_timer && scene.standstill && scene.started_timer / UI_FREQ >= 10;
   if (stoppedTimer) {
@@ -895,14 +889,6 @@ void AnnotatedCameraWidget::updateFrogPilotWidgets(QPainter &painter, const UISc
 
   turnSignalLeft = scene.turn_signal_left;
   turnSignalRight = scene.turn_signal_right;
-  if (turnSignalAnimation && (turnSignalLeft || turnSignalRight) && !bigMapOpen) {
-    if (!animationTimer->isActive()) {
-      animationTimer->start(signalAnimationLength);
-    }
-    drawTurnSignals(painter);
-  } else if (animationTimer->isActive()) {
-    animationTimer->stop();
-  }
 
   useSI = scene.use_si;
 
@@ -966,6 +952,29 @@ void AnnotatedCameraWidget::updateSignals() {
 
     totalFrames = 0;
     turnSignalAnimation = false;
+  }
+}
+
+void AnnotatedCameraWidget::paintFrogPilotWidgets(QPainter &painter) {
+  if ((showAlwaysOnLateralStatusBar || showConditionalExperimentalStatusBar || roadNameUI) && !bigMapOpen) {
+    drawStatusBar(painter);
+  }
+
+  if (leadInfo && !bigMapOpen) {
+    drawLeadInfo(painter);
+  }
+
+  if (speedLimitChanged) {
+    drawSLCConfirmation(painter);
+  }
+
+  if (turnSignalAnimation && (turnSignalLeft || turnSignalRight) && !bigMapOpen) {
+    if (!animationTimer->isActive()) {
+      animationTimer->start(signalAnimationLength);
+    }
+    drawTurnSignals(painter);
+  } else if (animationTimer->isActive()) {
+    animationTimer->stop();
   }
 }
 
@@ -1263,8 +1272,8 @@ void AnnotatedCameraWidget::drawStatusBar(QPainter &p) {
     {12, tr("Experimental Mode activated for curve")},
     {13, tr("Experimental Mode activated for stopped lead")},
     {14, tr("Experimental Mode activated for slower lead")},
-    {15, tr("Experimental Mode activated for %1").arg(mapOpen || speed < 1 ? tr("model requesting stop") : QString("the model wanting to stop in %1 seconds").arg(modelStopTime))},
-    {16, tr("Experimental Mode forced on %1").arg(mapOpen || speed < 1 ? tr("to stop") : QString("for the model wanting to stop in %1 seconds").arg(modelStopTime))},
+    {15, tr("Experimental Mode activated for %1").arg(mapOpen || modelStopTime < 1 ? tr("model requesting stop") : QString("the model wanting to stop in %1 seconds").arg(modelStopTime))},
+    {16, tr("Experimental Mode forced on %1").arg(mapOpen || modelStopTime < 1 ? tr("to stop") : QString("for the model wanting to stop in %1 seconds").arg(modelStopTime))},
     {17, tr("Experimental Mode activated due to no speed limit")},
   };
 
@@ -1333,7 +1342,7 @@ void AnnotatedCameraWidget::drawTurnSignals(QPainter &p) {
   bool blindspotActive = turnSignalLeft ? blindSpotLeft : blindSpotRight;
 
   if (signalStyle == "static") {
-    int signalXPosition = turnSignalLeft ? rect().center().x() - 176 - signalWidth / 2 : rect().center().x() + 176 + signalWidth / 2;
+    int signalXPosition = turnSignalLeft ? rect().center().x() - 176 - signalWidth : rect().center().x() + signalWidth;
     int signalYPosition = signalHeight / 2;
 
     if (blindspotActive && !blindspotImages.empty()) {
@@ -1343,7 +1352,7 @@ void AnnotatedCameraWidget::drawTurnSignals(QPainter &p) {
     }
   } else if (signalStyle == "traditional") {
     int signalXPosition = turnSignalLeft ? width() - ((animationFrameIndex + 1) * signalWidth) : animationFrameIndex * signalWidth;
-    int signalYPosition = height() - (alertSize + signalHeight);
+    int signalYPosition = height() - (alertHeight + signalHeight);
 
     signalYPosition -= showAlwaysOnLateralStatusBar || showConditionalExperimentalStatusBar || roadNameUI ? statusBarHeight : 0;
 

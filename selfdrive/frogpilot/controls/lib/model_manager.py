@@ -7,7 +7,7 @@ import time
 import urllib.request
 
 from openpilot.common.basedir import BASEDIR
-from openpilot.common.params import Params
+from openpilot.common.params import Params, UnknownKeyName
 
 from openpilot.selfdrive.frogpilot.controls.lib.download_functions import GITHUB_URL, GITLAB_URL, download_file, get_repository_url, handle_error, verify_download
 from openpilot.selfdrive.frogpilot.controls.lib.frogpilot_functions import MODELS_PATH, delete_file
@@ -122,6 +122,10 @@ class ModelManager:
 
   def remove_model_params(self, available_model_names, available_models, model):
     part_model_param = process_model_name(available_model_names[available_models.index(model)])
+    try:
+      self.params.check_key(part_model_param + "CalibrationParams")
+    except UnknownKeyName:
+      return
     self.params.remove(part_model_param + "CalibrationParams")
     self.params.remove(part_model_param + "LiveTorqueParameters")
 

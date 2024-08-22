@@ -12,32 +12,34 @@ from openpilot.selfdrive.frogpilot.controls.lib.download_functions import GITHUB
 from openpilot.selfdrive.frogpilot.controls.lib.frogpilot_functions import ACTIVE_THEME_PATH, THEME_SAVE_PATH, delete_file, update_frogpilot_toggles
 
 def copy_theme_asset(asset_type, theme, holiday_theme, params):
-  if holiday_theme:
-    location = os.path.join(BASEDIR, "selfdrive", "frogpilot", "assets", "holiday_themes", holiday_theme, asset_type)
-  else:
-    location = os.path.join(THEME_SAVE_PATH, theme, asset_type)
+  save_location = os.path.join(ACTIVE_THEME_PATH, asset_type)
 
-  if not os.path.exists(location):
+  if holiday_theme:
+    source_location = os.path.join(BASEDIR, "selfdrive", "frogpilot", "assets", "holiday_themes", holiday_theme, asset_type)
+  else:
+    source_location = os.path.join(THEME_SAVE_PATH, theme, asset_type)
+
+  if not os.path.exists(source_location):
     if asset_type == "colors":
       params.put_bool("UseStockColors", True)
       print("Using the stock color scheme instead")
       return
     elif asset_type == "icons":
-      location = os.path.join(BASEDIR, "selfdrive", "frogpilot", "assets", "stock_theme", "icons")
+      source_location = os.path.join(BASEDIR, "selfdrive", "frogpilot", "assets", "stock_theme", "icons")
       print("Using the stock icon pack instead")
     else:
+      if os.path.exists(save_location):
+        shutil.rmtree(save_location)
       print(f"Using the stock {asset_type[:-1]} instead")
       return
   else:
     params.put_bool("UseStockColors", False)
 
-  save_location = os.path.join(ACTIVE_THEME_PATH, asset_type)
-
   if os.path.exists(save_location):
     shutil.rmtree(save_location)
 
-  shutil.copytree(location, save_location)
-  print(f"Copied {location} to {save_location}")
+  shutil.copytree(source_location, save_location)
+  print(f"Copied {source_location} to {save_location}")
 
 def update_distance_icons(pack, holiday_theme):
   if holiday_theme:
@@ -164,6 +166,9 @@ class ThemeManager:
     self.previous_assets.pop("holiday_theme", None)
 
   def update_active_theme(self):
+    if not os.path.exists(THEME_SAVE_PATH):
+      return
+
     bonus_content = self.params.get_bool("BonusContent")
     holiday_themes = bonus_content and self.params.get_bool("HolidayThemes")
     current_holiday_theme = self.previous_assets.get("holiday_theme") if holiday_themes else None

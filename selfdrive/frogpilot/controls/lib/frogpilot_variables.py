@@ -55,12 +55,12 @@ class FrogPilotVariables:
       with car.CarParams.from_bytes(msg_bytes) as CP:
         car_make = CP.carName
         car_model = CP.carFingerprint
-        openpilot_longitudinal = CP.openpilotLongitudinalControl
+        toggle.openpilot_longitudinal = CP.openpilotLongitudinalControl
         pcm_cruise = CP.pcmCruise
     else:
       car_make = "mock"
       car_model = "mock"
-      openpilot_longitudinal = False
+      toggle.openpilot_longitudinal = False
       pcm_cruise = False
 
     toggle.is_metric = self.params.get_bool("IsMetric")
@@ -94,7 +94,7 @@ class FrogPilotVariables:
 
     toggle.cluster_offset = self.params.get_float("ClusterOffset") if car_make == "toyota" else 1
 
-    toggle.conditional_experimental_mode = openpilot_longitudinal and self.params.get_bool("ConditionalExperimental")
+    toggle.conditional_experimental_mode = toggle.openpilot_longitudinal and self.params.get_bool("ConditionalExperimental")
     toggle.conditional_curves = toggle.conditional_experimental_mode and self.params.get_bool("CECurves")
     toggle.conditional_curves_lead = toggle.conditional_curves and self.params.get_bool("CECurvesLead")
     toggle.conditional_lead = toggle.conditional_experimental_mode and self.params.get_bool("CELead")
@@ -127,7 +127,7 @@ class FrogPilotVariables:
     toggle.low_voltage_shutdown = self.params.get_float("LowVoltageShutdown") if toggle.device_management else 11.8
     toggle.offline_mode = toggle.device_management and self.params.get_bool("OfflineMode")
 
-    driving_personalities = openpilot_longitudinal and self.params.get_bool("DrivingPersonalities")
+    driving_personalities = toggle.openpilot_longitudinal and self.params.get_bool("DrivingPersonalities")
     toggle.custom_personalities = driving_personalities and self.params.get_bool("CustomPersonalities")
     aggressive_profile = toggle.custom_personalities and self.params.get_bool("AggressivePersonalityProfile")
     toggle.aggressive_jerk_acceleration = self.params.get_int("AggressiveJerkAcceleration") / 100. if aggressive_profile else 0.5
@@ -152,7 +152,7 @@ class FrogPilotVariables:
     onroad_distance_button = toggle.custom_personalities and self.params.get_bool("OnroadDistanceButton")
     toggle.distance_icons = self.params.get("CustomDistanceIcons", encoding='utf-8') if onroad_distance_button else "stock"
 
-    toggle.experimental_mode_via_press = openpilot_longitudinal and self.params.get_bool("ExperimentalModeActivation")
+    toggle.experimental_mode_via_press = toggle.openpilot_longitudinal and self.params.get_bool("ExperimentalModeActivation")
     toggle.experimental_mode_via_distance = toggle.experimental_mode_via_press and self.params.get_bool("ExperimentalModeViaDistance")
     toggle.experimental_mode_via_lkas = not toggle.always_on_lateral_lkas and toggle.experimental_mode_via_press and self.params.get_bool("ExperimentalModeViaLKAS")
 
@@ -172,10 +172,10 @@ class FrogPilotVariables:
     toggle.taco_tune = lateral_tune and self.params.get_bool("TacoTune")
     toggle.turn_desires = lateral_tune and self.params.get_bool("TurnDesires")
 
-    toggle.long_pitch = openpilot_longitudinal and car_make == "gm" and self.params.get_bool("LongPitch")
+    toggle.long_pitch = toggle.openpilot_longitudinal and car_make == "gm" and self.params.get_bool("LongPitch")
     toggle.volt_sng = car_model == "CHEVROLET_VOLT" and self.params.get_bool("VoltSNG")
 
-    longitudinal_tune = openpilot_longitudinal and self.params.get_bool("LongitudinalTune")
+    longitudinal_tune = toggle.openpilot_longitudinal and self.params.get_bool("LongitudinalTune")
     toggle.acceleration_profile = self.params.get_int("AccelerationProfile") if longitudinal_tune else 0
     toggle.deceleration_profile = self.params.get_int("DecelerationProfile") if longitudinal_tune else 0
     toggle.human_acceleration = longitudinal_tune and self.params.get_bool("HumanAcceleration")
@@ -185,7 +185,7 @@ class FrogPilotVariables:
     toggle.sport_plus = longitudinal_tune and toggle.acceleration_profile == 3
     toggle.traffic_mode = longitudinal_tune and self.params.get_bool("TrafficMode")
 
-    toggle.map_turn_speed_controller = openpilot_longitudinal and self.params.get_bool("MTSCEnabled")
+    toggle.map_turn_speed_controller = toggle.openpilot_longitudinal and self.params.get_bool("MTSCEnabled")
     toggle.mtsc_curvature_check = toggle.map_turn_speed_controller and self.params.get_bool("MTSCCurvatureCheck")
     self.params_memory.put_float("MapTargetLatA", 2 * (self.params.get_int("MTSCAggressiveness") / 100.))
 
@@ -247,9 +247,9 @@ class FrogPilotVariables:
     toggle.reverse_cruise_increase = quality_of_life_controls and pcm_cruise and self.params.get_bool("ReverseCruise")
     toggle.set_speed_offset = self.params.get_int("SetSpeedOffset") * (1. if toggle.is_metric else CV.MPH_TO_KPH) if quality_of_life_controls and not pcm_cruise else 0
 
-    toggle.sng_hack = openpilot_longitudinal and car_make == "toyota" and self.params.get_bool("SNGHack")
+    toggle.sng_hack = toggle.openpilot_longitudinal and car_make == "toyota" and self.params.get_bool("SNGHack")
 
-    toggle.speed_limit_controller = openpilot_longitudinal and self.params.get_bool("SpeedLimitController")
+    toggle.speed_limit_controller = toggle.openpilot_longitudinal and self.params.get_bool("SpeedLimitController")
     toggle.force_mph_dashboard = toggle.speed_limit_controller and self.params.get_bool("ForceMPHDashboard")
     toggle.map_speed_lookahead_higher = self.params.get_int("SLCLookaheadHigher") if toggle.speed_limit_controller else 0
     toggle.map_speed_lookahead_lower = self.params.get_int("SLCLookaheadLower") if toggle.speed_limit_controller else 0
@@ -278,7 +278,7 @@ class FrogPilotVariables:
     toggle.lock_doors = toyota_doors and self.params.get_bool("LockDoors")
     toggle.unlock_doors = toyota_doors and self.params.get_bool("UnlockDoors")
 
-    toggle.vision_turn_controller = openpilot_longitudinal and self.params.get_bool("VisionTurnControl")
+    toggle.vision_turn_controller = toggle.openpilot_longitudinal and self.params.get_bool("VisionTurnControl")
     toggle.curve_sensitivity = self.params.get_int("CurveSensitivity") / 100. if toggle.vision_turn_controller else 1
     toggle.turn_aggressiveness = self.params.get_int("TurnAggressiveness") / 100. if toggle.vision_turn_controller else 1
 

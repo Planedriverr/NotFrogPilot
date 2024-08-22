@@ -44,6 +44,8 @@ def handle_error(destination, error_message, error, download_param, progress_par
 
 def handle_request_error(error, destination, download_param, progress_param, params_memory):
   if isinstance(error, requests.HTTPError):
+    if error.response.status_code == 404:
+      return
     error_message = f"Server error ({error.response.status_code})" if error.response else "Server error."
   elif isinstance(error, requests.ConnectionError):
     error_message = "Connection dropped."

@@ -245,14 +245,12 @@ static void update_state(UIState *s) {
   }
   if (sm.updated("controlsState")) {
     auto controlsState = sm["controlsState"].getControlsState();
-    scene.alert_size = controlsState.getAlertSize() == cereal::ControlsState::AlertSize::MID ? 350 : controlsState.getAlertSize() == cereal::ControlsState::AlertSize::SMALL ? 200 : 0;
     scene.enabled = controlsState.getEnabled();
     scene.experimental_mode = scene.enabled && controlsState.getExperimentalMode();
   }
   if (sm.updated("deviceState")) {
     auto deviceState = sm["deviceState"].getDeviceState();
-    scene.online = deviceState.getNetworkType() != cereal::DeviceState::NetworkType::NONE;
-    scene.online &= !deviceState.getNetworkMetered();
+    scene.online = deviceState.getNetworkType() == cereal::DeviceState::NetworkType::WIFI;
   }
   if (sm.updated("frogpilotCarControl")) {
     auto frogpilotCarControl = sm["frogpilotCarControl"].getFrogpilotCarControl();

@@ -54,7 +54,7 @@ class FrogPilotFollowing:
     # Offset by FrogAi for FrogPilot for a more natural approach to a faster lead
     if frogpilot_toggles.human_following and v_lead > v_ego:
       distance_factor = max(lead_distance - (v_ego * self.t_follow), 1)
-      standstill_offset = max(stopping_distance - v_ego, 0) * max(v_lead - v_ego, 0)
+      standstill_offset = max(stopping_distance - v_ego, 0) * max(v_lead - v_ego, 1)
       acceleration_offset = clip((v_lead - v_ego) + standstill_offset - COMFORT_BRAKE, 1, distance_factor)
       self.acceleration_jerk = self.base_acceleration_jerk / acceleration_offset
       self.speed_jerk = self.base_speed_jerk / acceleration_offset
@@ -72,4 +72,8 @@ class FrogPilotFollowing:
       self.slower_lead = braking_offset - far_lead_offset > 1
 
     if frogpilot_toggles.human_following:
-      self.danger_jerk = self.base_danger_jerk / clip(abs(v_ego - v_lead), 1, CRUISING_SPEED)
+      low_speed_offset = max(CRUISING_SPEED - v_ego, 1)
+
+      self.acceleration_jerk /= low_speed_offset
+      self.danger_jerk = self.base_danger_jerk / low_speed_offset
+      self.speed_jerk /= low_speed_offset

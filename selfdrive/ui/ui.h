@@ -235,7 +235,6 @@ typedef struct UIScene {
   float steer;
   float unconfirmed_speed_limit;
 
-  int alert_size;
   int bearing_deg;
   int camera_view;
   int conditional_speed;

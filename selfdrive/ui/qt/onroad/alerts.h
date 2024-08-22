@@ -12,6 +12,9 @@ public:
   void updateState(const UIState &s);
   void clear();
 
+  // FrogPilot variables
+  int alert_height;
+
 protected:
   struct Alert {
     QString text1;
@@ -41,8 +44,8 @@ protected:
   Alert alert = {};
 
   // FrogPilot variables
-  bool hideAlerts;
-  bool roadNameUI;
-  bool showAOLStatusBar;
-  bool showCEMStatusBar;
+  bool hide_alerts;
+  bool road_name_ui;
+  bool show_aol_status_bar;
+  bool show_cem_status_bar;
 };

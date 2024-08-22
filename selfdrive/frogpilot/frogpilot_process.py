@@ -15,7 +15,7 @@ from openpilot.selfdrive.frogpilot.controls.lib.frogpilot_variables import FrogP
 from openpilot.selfdrive.frogpilot.controls.lib.model_manager import DEFAULT_MODEL, DEFAULT_MODEL_NAME, ModelManager
 from openpilot.selfdrive.frogpilot.controls.lib.theme_manager import ThemeManager
 
-OFFLINE = log.DeviceState.NetworkType.none
+WIFI = log.DeviceState.NetworkType.wifi
 
 locks = {
   "backup_toggles": threading.Lock(),
@@ -73,7 +73,7 @@ def download_assets(model_manager, theme_manager, params, params_memory):
       run_thread_with_lock("download_theme", theme_manager.download_theme, (asset_type, asset_to_download, param))
 
 def time_checks(automatic_updates, deviceState, model_manager, now, started, theme_manager, params, params_memory):
-  if deviceState.networkType == OFFLINE:
+  if deviceState.networkType != WIFI:
     return
 
   if not is_url_pingable("https://github.com"):
@@ -193,8 +193,9 @@ def frogpilot_thread():
         time_validated = system_time_valid()
         if not time_validated:
           continue
-        run_thread_with_lock("update_models", model_manager.update_models)
-        run_thread_with_lock("update_themes", theme_manager.update_themes)
+        if deviceState.networkType == WIFI:
+          run_thread_with_lock("update_models", model_manager.update_models)
+          run_thread_with_lock("update_themes", theme_manager.update_themes)
 
       theme_manager.update_holiday()
 

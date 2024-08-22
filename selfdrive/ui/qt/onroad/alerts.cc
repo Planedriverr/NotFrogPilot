@@ -15,10 +15,10 @@ void OnroadAlerts::updateState(const UIState &s) {
   // FrogPilot variables
   const UIScene &scene = s.scene;
 
-  hideAlerts = scene.hide_alerts;
-  roadNameUI = scene.road_name_ui;
-  showAOLStatusBar = scene.show_aol_status_bar;
-  showCEMStatusBar = scene.show_cem_status_bar;
+  hide_alerts = scene.hide_alerts;
+  road_name_ui = scene.road_name_ui;
+  show_aol_status_bar = scene.show_aol_status_bar;
+  show_cem_status_bar = scene.show_cem_status_bar;
 }
 
 void OnroadAlerts::clear() {
@@ -67,7 +67,7 @@ void OnroadAlerts::paintEvent(QPaintEvent *event) {
     return;
   }
 
-  if (hideAlerts && alert.status == cereal::ControlsState::AlertStatus::NORMAL) {
+  if (hide_alerts && alert.status == cereal::ControlsState::AlertStatus::NORMAL) {
     return;
   }
 
@@ -80,7 +80,8 @@ void OnroadAlerts::paintEvent(QPaintEvent *event) {
 
   int margin = 40;
   int radius = 30;
-  int offset = roadNameUI || showAOLStatusBar || showCEMStatusBar ? 25 : 0;
+  int offset = road_name_ui || show_aol_status_bar || show_cem_status_bar ? 25 : 0;
+  alert_height = h - margin + offset;
   if (alert.size == cereal::ControlsState::AlertSize::FULL) {
     margin = 0;
     radius = 0;
