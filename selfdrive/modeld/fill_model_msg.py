@@ -8,14 +8,6 @@ SEND_RAW_PRED = os.getenv('SEND_RAW_PRED')
 
 ConfidenceClass = log.ModelDataV2.ConfidenceClass
 
-def curv_from_psis(psi_target, psi_rate, vego, delay):
-  curv_from_psi = psi_target / ((vego + 1e-3) * delay)  # epsilon to prevent divide-by-zero
-  return 2*curv_from_psi - psi_rate / (1e-3 + vego)
-
-def get_curvature_from_plan(plan, vego, delay):
-  psi_target = np.interp(delay, ModelConstants.T_IDXS, plan[:, Plan.T_FROM_CURRENT_EULER][:, 2])
-  psi_rate = plan[:, Plan.ORIENTATION_RATE][0, 2]
-  return curv_from_psis(psi_target, psi_rate, vego, delay)
 
 class PublishState:
   def __init__(self):
@@ -52,13 +44,10 @@ def fill_xyvat(builder, t, x, y, v, a, x_std=None, y_std=None, v_std=None, a_std
 
 def fill_model_msg(msg: capnp._DynamicStructBuilder, net_output_data: dict[str, np.ndarray], publish_state: PublishState,
                    vipc_frame_id: int, vipc_frame_id_extra: int, frame_id: int, frame_drop: float,
-                   timestamp_eof: int, timestamp_llk: int, model_execution_time: float, v_ego: float,
-                   delay: float, valid: bool, nav_enabled: bool,
+                   timestamp_eof: int, timestamp_llk: int, model_execution_time: float, valid: bool, nav_enabled: bool,
                    clairvoyant_model: bool, secret_good_openpilot: bool) -> None:
   frame_age = frame_id - vipc_frame_id if frame_id > vipc_frame_id else 0
   msg.valid = valid
-
-  desired_curv = get_curvature_from_plan(net_output_data['plan'][0], v_ego, delay)
 
   modelV2 = msg.modelV2
   modelV2.frameId = vipc_frame_id
@@ -84,10 +73,7 @@ def fill_model_msg(msg: capnp._DynamicStructBuilder, net_output_data: dict[str, 
 
   # lateral planning
   action = modelV2.action
-  if clairvoyant_model:
-    action.desiredCurvature = float(desired_curv)
-  else:
-    action.desiredCurvature = float(net_output_data['desired_curvature'][0,0])
+  action.desiredCurvature = float(net_output_data['desired_curvature'][0,0])
 
   # times at X_IDXS according to model plan
   PLAN_T_IDXS = [np.nan] * ModelConstants.IDX_N

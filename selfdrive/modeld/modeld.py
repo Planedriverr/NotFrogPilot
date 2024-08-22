@@ -81,8 +81,8 @@ class ModelState:
     self.inputs = {
       'desire': np.zeros(ModelConstants.DESIRE_LEN * (ModelConstants.HISTORY_BUFFER_LEN_SECRET+1 if SECRET_GOOD_OPENPILOT else ModelConstants.HISTORY_BUFFER_LEN+1), dtype=np.float32),
       'traffic_convention': np.zeros(ModelConstants.TRAFFIC_CONVENTION_LEN, dtype=np.float32),
-      **({'lateral_control_params': np.zeros(ModelConstants.LATERAL_CONTROL_PARAMS_LEN, dtype=np.float32)} if not CLAIRVOYANT_MODEL else {}),
-      **({'prev_desired_curv': np.zeros(ModelConstants.NAV_INSTRUCTION_LEN, dtype=np.float32)} if not CLAIRVOYANT_MODEL else {}),
+      'lateral_control_params': np.zeros(ModelConstants.LATERAL_CONTROL_PARAMS_LEN, dtype=np.float32),
+      'prev_desired_curv': np.zeros(ModelConstants.PREV_DESIRED_CURV_LEN * (ModelConstants.HISTORY_BUFFER_LEN+1), dtype=np.float32),
       **({'nav_features': np.zeros(ModelConstants.NAV_FEATURE_LEN, dtype=np.float32),
           'nav_instructions': np.zeros(ModelConstants.NAV_INSTRUCTION_LEN, dtype=np.float32)} if not DISABLE_NAV else {}),
       'features_buffer': np.zeros((ModelConstants.HISTORY_BUFFER_LEN_SECRET if SECRET_GOOD_OPENPILOT else ModelConstants.HISTORY_BUFFER_LEN) * ModelConstants.FEATURE_LEN, dtype=np.float32),
@@ -131,9 +131,7 @@ class ModelState:
     self.prev_desire[:] = inputs['desire']
 
     self.inputs['traffic_convention'][:] = inputs['traffic_convention']
-
-    if not CLAIRVOYANT_MODEL:
-      self.inputs['lateral_control_params'][:] = inputs['lateral_control_params']
+    self.inputs['lateral_control_params'][:] = inputs['lateral_control_params']
 
     if not DISABLE_NAV:
       self.inputs['nav_features'][:] = inputs['nav_features']
@@ -177,9 +175,8 @@ class ModelState:
       self.inputs['features_buffer'][:-ModelConstants.FEATURE_LEN] = self.inputs['features_buffer'][ModelConstants.FEATURE_LEN:]
       self.inputs['features_buffer'][-ModelConstants.FEATURE_LEN:] = outputs['hidden_state'][0, :]
 
-    if not CLAIRVOYANT_MODEL:
-      self.inputs['prev_desired_curv'][:-ModelConstants.PREV_DESIRED_CURV_LEN] = self.inputs['prev_desired_curv'][ModelConstants.PREV_DESIRED_CURV_LEN:]
-      self.inputs['prev_desired_curv'][-ModelConstants.PREV_DESIRED_CURV_LEN:] = outputs['desired_curvature'][0, :]
+    self.inputs['prev_desired_curv'][:-ModelConstants.PREV_DESIRED_CURV_LEN] = self.inputs['prev_desired_curv'][ModelConstants.PREV_DESIRED_CURV_LEN:]
+    self.inputs['prev_desired_curv'][-ModelConstants.PREV_DESIRED_CURV_LEN:] = outputs['desired_curvature'][0, :]
     return outputs
 
 
@@ -372,7 +369,7 @@ def main(demo=False):
       modelv2_send = messaging.new_message('modelV2')
       posenet_send = messaging.new_message('cameraOdometry')
       fill_model_msg(modelv2_send, model_output, publish_state, meta_main.frame_id, meta_extra.frame_id, frame_id, frame_drop_ratio,
-                     meta_main.timestamp_eof, timestamp_llk, model_execution_time, sm["carState"].vEgo, steer_delay, live_calib_seen, nav_enabled,
+                     meta_main.timestamp_eof, timestamp_llk, model_execution_time, live_calib_seen, nav_enabled,
                      CLAIRVOYANT_MODEL, SECRET_GOOD_OPENPILOT)
 
       desire_state = modelv2_send.modelV2.meta.desireState
