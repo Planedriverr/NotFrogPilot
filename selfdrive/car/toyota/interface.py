@@ -151,7 +151,7 @@ class CarInterface(CarInterfaceBase):
         tune.kiV = [1.2]             # appears to produce minimal oscillation on TSS-P
     elif params.get_bool("FrogsGoMooTune"):
       if candidate in TSS2_CAR or ret.enableGasInterceptor:
-        ret.stopAccel = -0.4         # on stock Toyota this is -0.4
+        ret.stopAccel = -2.5         # on stock Toyota this is -2.5
       else:
         ret.stopAccel = -2.5         # on stock Toyota this is -2.5
       ret.stoppingDecelRate = 0.1    # reach stopping target smoothly
